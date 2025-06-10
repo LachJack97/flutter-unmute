@@ -1,0 +1,32 @@
+name: unmute
+description: "A new Flutter project."
+publish_to: "none"
+version: 0.1.0
+
+environment:
+  sdk: ">=3.0.0 <4.0.0" # It's better to use a range
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Core App Dependencies
+  supabase_flutter: ^2.5.8 # Using latest stable version
+  go_router: ^14.2.0 # Using latest stable version
+  flutter_bloc: ^8.1.6 # Using latest stable version
+  freezed_annotation: ^2.4.1 # This should match the freezed version's requirement
+  equatable: ^2.0.7
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # Linter
+  flutter_lints: ^4.0.0 # Using latest stable version
+
+  # Code Generation Tools
+  build_runner: ^2.4.11 # Using latest stable version
+  freezed: ^2.5.2 # Using latest stable version
+
+flutter:
+  uses-material-design: true
