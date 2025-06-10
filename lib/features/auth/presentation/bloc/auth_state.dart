@@ -1,18 +1,45 @@
-// lib/features/auth/presentation/bloc/auth_state.dart
+import 'package:equatable/equatable.dart';
 
-part of 'auth_bloc.dart';
+abstract class AuthEvent extends Equatable {
+  const AuthEvent();
 
-@freezed
-sealed class AuthState with _$AuthState {
-  const factory AuthState.initial() = _Initial;
+  @override
+  List<Object?> get props => [];
+}
 
-  const factory AuthState.loading() = _Loading;
+/// Dispatched when the app starts to check the initial auth status.
+class AuthAppStarted extends AuthEvent {
+  const AuthAppStarted();
+}
 
-  // This is the single, correct line for the authenticated state.
-  const factory AuthState.authenticated({required UserEntity user}) =
-      _Authenticated;
+/// Dispatched when the user taps the login button.
+class AuthLoginRequested extends AuthEvent {
+  final String email;
+  final String password;
 
-  const factory AuthState.unauthenticated() = _Unauthenticated;
+  const AuthLoginRequested({required this.email, required this.password});
 
-  const factory AuthState.error({required String message}) = _Error;
+  @override
+  List<Object> get props => [email, password];
+}
+
+/// Dispatched when the user taps the register button.
+class AuthRegisterRequested extends AuthEvent {
+  final String email;
+  final String password;
+  final String username;
+
+  const AuthRegisterRequested({
+    required this.email,
+    required this.password,
+    required this.username,
+  });
+
+  @override
+  List<Object> get props => [email, password, username];
+}
+
+/// Dispatched when the user taps the logout button.
+class AuthLogoutRequested extends AuthEvent {
+  const AuthLogoutRequested();
 }
