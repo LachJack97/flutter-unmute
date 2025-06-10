@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:unmute/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:unmute/features/auth/presentation/bloc/auth_event.dart'; // Import for Auth Events
-import 'package:unmute/features/chat/presentation/bloc/chat_bloc.dart'
-    hide LanguageChanged;
+import 'package:flutter/foundation.dart'; // Import for listEquals
+import 'package:unmute/features/auth/presentation/bloc/auth_event.dart';
+import 'package:unmute/features/chat/presentation/bloc/chat_bloc.dart';
 import 'package:unmute/features/chat/presentation/bloc/chat_event.dart';
 import 'package:unmute/features/chat/presentation/bloc/chat_state.dart';
 
@@ -11,6 +11,7 @@ import 'package:unmute/features/chat/presentation/bloc/chat_state.dart';
 import 'package:unmute/features/chat/presentation/widgets/chat_input_bar.dart';
 import 'package:unmute/features/chat/presentation/widgets/chat_message_item.dart';
 import 'package:unmute/features/chat/presentation/widgets/chat_typing_indicator.dart';
+// Make sure this path points to your rebuilt LanguageSelectorPill file
 import 'package:unmute/features/chat/presentation/widgets/language_selector_pill.dart';
 
 class ChatPage extends StatefulWidget {
@@ -23,6 +24,14 @@ class ChatPage extends StatefulWidget {
 class _ChatPageState extends State<ChatPage> {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
+
+  // Language state is now managed by ChatBloc
+
+  @override
+  void initState() {
+    super.initState();
+    // ChatBloc's SubscriptionRequested will handle loading initial language.
+  }
 
   @override
   void dispose() {
@@ -50,29 +59,108 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  void _onLanguageSelected(String? languageCode) {
-    if (languageCode != null) {
-      context.read<ChatBloc>().add(LanguageChanged(languageCode));
-    }
+  // The callback now provides the full Language object.
+  void _onLanguageSelected(Language newLanguage) {
+    // Dispatch LanguageChanged event with the full Language object
+    context.read<ChatBloc>().add(LanguageChanged(newLanguage));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white, // Set the background color to white
       appBar: AppBar(
-        title: const Text('Chat'),
+        elevation: 0, // Removes shadow for a flatter, modern look
+        backgroundColor: Colors.white, // Explicitly set to white
+        scrolledUnderElevation: 0, // Ensures no elevation change on scroll
+        leading: PopupMenuButton<String>(
+          icon: Icon(
+            Icons.account_circle,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+          onSelected: (value) {
+            if (value == 'logout') {
+              context.read<AuthBloc>().add(const AuthLogoutRequested());
+            } else if (value == 'clear_chat') {
+              // Dispatch event to clear chat history
+              context.read<ChatBloc>().add(const ChatHistoryCleared());
+            }
+          },
+          itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+            const PopupMenuItem<String>(
+              value: 'logout',
+              child: ListTile(
+                leading: Icon(Icons.logout),
+                title: Text('Logout'),
+              ),
+            ),
+            const PopupMenuDivider(), // Optional: adds a visual separator
+            const PopupMenuItem<String>(
+              value: 'clear_chat',
+              child: ListTile(
+                leading: Icon(Icons.delete_sweep_outlined),
+                title: Text('Clear Chat History'),
+              ),
+            ),
+            const PopupMenuDivider(),
+            PopupMenuItem(
+              value:
+                  'set_native_language', // This value won't be directly used for action
+              child: SubmenuButton(
+                menuChildren:
+                    LanguageSelectorPill.availableLanguages.map((lang) {
+                  return MenuItemButton(
+                    child: Text(lang.promptName), // Show full name for clarity
+                    onPressed: () {
+                      context.read<ChatBloc>().add(NativeLanguageSet(lang));
+                      Navigator.pop(context); // Close the main popup menu
+                    },
+                  );
+                }).toList(),
+                child: const Text('Set Native Language'),
+              ),
+            ),
+            // You can add more items here like 'Profile', 'Settings', etc.
+          ],
+        ),
+        title: Text(
+          'Chat',
+          style: TextStyle(
+            fontWeight: FontWeight.w500, // Slightly bolder title
+            color: Theme.of(context).colorScheme.onSurface, // Adapts to theme
+          ),
+        ),
         centerTitle: true,
         actions: [
-          LanguageSelectorPill(
-              onLanguageSelected:
-                  _onLanguageSelected), // Language selector pill
-          // Logout button
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              context.read<AuthBloc>().add(const AuthLogoutRequested());
+          BlocBuilder<ChatBloc, ChatState>(
+            buildWhen: (previous, current) =>
+                previous is! ChatLoaded ||
+                current is! ChatLoaded ||
+                (previous as ChatLoaded).selectedLanguage !=
+                    (current as ChatLoaded).selectedLanguage ||
+                !listEquals(
+                    (previous as ChatLoaded).translatableLanguagesForPill,
+                    (current as ChatLoaded).translatableLanguagesForPill),
+            builder: (context, state) {
+              Language currentSelectedLanguage =
+                  LanguageSelectorPill.defaultLanguage;
+              List<Language> languagesForPill = [
+                LanguageSelectorPill.defaultLanguage
+              ]; // Fallback
+              if (state is ChatLoaded) {
+                currentSelectedLanguage = state.selectedLanguage;
+                languagesForPill = state.translatableLanguagesForPill;
+              }
+              return LanguageSelectorPill(
+                languagesToDisplayInPill: languagesForPill,
+                selectedLanguage: currentSelectedLanguage,
+                onLanguageSelected: _onLanguageSelected,
+              );
             },
           ),
+          const SizedBox(
+              width:
+                  12.0), // Increased spacing for better balance from the edge
         ],
       ),
       body: Column(
@@ -81,15 +169,17 @@ class _ChatPageState extends State<ChatPage> {
             child: BlocConsumer<ChatBloc, ChatState>(
               listener: (context, state) {
                 if (state is ChatLoaded) {
+                  // Optional: Add a check to prevent scrolling on every rebuild
+                  // if new messages haven't been added.
                   Future.delayed(
                       const Duration(milliseconds: 100), _scrollToBottom);
                 }
               },
               builder: (context, state) {
                 if (state is ChatInitial ||
-                    state is ChatLoading &&
+                    (state is ChatLoading &&
                         (state is! ChatLoaded ||
-                            (state as ChatLoaded).messages.isEmpty)) {
+                            (state as ChatLoaded).messages.isEmpty))) {
                   return const Center(child: CircularProgressIndicator());
                 } else if (state is ChatError) {
                   return Center(child: Text('Error: ${state.message}'));

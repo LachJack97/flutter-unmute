@@ -11,6 +11,7 @@ class MessageEntity extends Equatable {
   final String? output;
   final String? targetLanguage;
   final String? romanisation;
+  final String? detectedLanguageCode; // Add this field
   // --- THIS IS THE PERMANENT FIX ---
   // Change this field from Map? to a List of Maps?
   final List<Map<String, dynamic>>? breakdown;
@@ -23,6 +24,7 @@ class MessageEntity extends Equatable {
     this.output,
     this.targetLanguage,
     this.romanisation,
+    this.detectedLanguageCode, // Add this to the constructor
     this.breakdown,
   });
 
@@ -35,6 +37,7 @@ class MessageEntity extends Equatable {
         output,
         targetLanguage,
         romanisation,
+        detectedLanguageCode, // Add this to props
         breakdown,
       ];
 }

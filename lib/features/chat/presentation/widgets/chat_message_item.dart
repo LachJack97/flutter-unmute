@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:unmute/features/chat/domain/entities/message_entity.dart';
+import 'package:flutter/services.dart'; // Import for Clipboard
 
 /// A stateful widget to handle a single message exchange.
 /// This includes the user's bubble and the AI's response bubble.
@@ -54,20 +55,68 @@ class _ChatMessageItemState extends State<ChatMessageItem> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      widget.message.output!,
-                      style:
-                          const TextStyle(fontSize: 16, color: Colors.black87),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment
+                          .center, // Align items vertically center
+                      children: [
+                        Expanded(
+                          child: Text(
+                            widget.message.output!,
+                            style: const TextStyle(
+                                fontSize: 16, color: Colors.black87),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.copy,
+                              size: 16), // Made icon smaller
+                          color: Colors.black45, // Slightly lighter color
+                          padding: const EdgeInsets.only(
+                              left: 4.0), // Reduced left padding
+                          constraints: const BoxConstraints(
+                              minWidth: 24,
+                              minHeight: 24), // Smaller tap target
+                          splashRadius: 18, // Smaller splash radius
+                          tooltip: 'Copy translation',
+                          onPressed: () {
+                            Clipboard.setData(
+                                ClipboardData(text: widget.message.output!));
+                          },
+                        ),
+                      ],
                     ),
                     if (widget.message.romanisation != null) ...[
                       const SizedBox(height: 4),
-                      Text(
-                        widget.message.romanisation!,
-                        style: const TextStyle(
-                          fontStyle: FontStyle.italic,
-                          color: Colors.black87,
-                          fontSize: 14,
-                        ),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment
+                            .center, // Align items vertically center
+                        children: [
+                          Expanded(
+                            child: Text(
+                              widget.message.romanisation!,
+                              style: const TextStyle(
+                                fontStyle: FontStyle.italic,
+                                color: Colors.black87,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.copy,
+                                size: 16), // Made icon smaller
+                            color: Colors.black45, // Slightly lighter color
+                            padding: const EdgeInsets.only(
+                                left: 4.0), // Reduced left padding
+                            constraints: const BoxConstraints(
+                                minWidth: 24,
+                                minHeight: 24), // Smaller tap target
+                            splashRadius: 18, // Smaller splash radius
+                            tooltip: 'Copy romanisation',
+                            onPressed: () {
+                              Clipboard.setData(ClipboardData(
+                                  text: widget.message.romanisation!));
+                            },
+                          ),
+                        ],
                       ),
                     ],
                     if (widget.message.breakdown != null &&
@@ -93,7 +142,7 @@ class _ChatMessageItemState extends State<ChatMessageItem> {
                   ],
                 ),
               ),
-            ),
+            )
         ],
       ),
     );

@@ -1,106 +1,153 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
 // --- Data Model for a Language ---
-// A simple class to hold the details for each language.
+// A robust, immutable class to hold all language details.
+@immutable
 class Language {
-  final String code;
-  final String name;
-  final String flag;
+  final String code; // e.g., 'en', 'ko'
+  final String displayName; // The short name for the UI, e.g., 'EN', 'KR'
+  final String
+      promptName; // The full name for AI prompts, e.g., 'English', 'Korean'
+  final String flag; // The emoji flag for the language.
 
-  const Language({required this.code, required this.name, required this.flag});
-}
+  const Language({
+    required this.code,
+    required this.displayName,
+    required this.promptName,
+    required this.flag,
+  });
 
-// --- The Main Language Selector Widget ---
-// This is a stateful widget because we need to manage the currently selected language.
-class LanguageSelectorPill extends StatefulWidget {
-  // Callback function to notify the parent widget of a language change.
-  // This is where you will call your Supabase update function.
-  final Function(String languageCode) onLanguageSelected;
-
-  const LanguageSelectorPill({super.key, required this.onLanguageSelected});
+  // Override equals and hashCode to ensure DropdownButton and other
+  // collection widgets can correctly compare Language objects.
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Language &&
+          runtimeType == other.runtimeType &&
+          code == other.code;
 
   @override
-  State<LanguageSelectorPill> createState() => _LanguageSelectorPillState();
+  int get hashCode => code.hashCode;
 }
 
-class _LanguageSelectorPillState extends State<LanguageSelectorPill> {
-  // List of available languages. You can easily add or remove languages here.
-  static const List<Language> languages = [
-    Language(code: 'en', name: 'EN', flag: '🇺🇸'),
-    Language(code: 'es', name: 'ES', flag: '🇪🇸'),
-    Language(code: 'fr', name: 'FR', flag: '🇫🇷'),
-    Language(code: 'de', name: 'DE', flag: '🇩🇪'),
-    Language(code: 'ja', name: 'JP', flag: '🇯🇵'),
-    Language(code: 'ko', name: 'KR', flag: '🇰🇷'),
+// Make sure the Language class from above is in the same file or imported.
+
+// --- The Main Language Selector Widget ---
+// A stateless, reusable pill-shaped dropdown for selecting a language.
+class LanguageSelectorPill extends StatelessWidget {
+  // Default language for the application.
+  static const Language defaultLanguage = Language(
+      code: 'en', displayName: 'EN', promptName: 'English', flag: '🇺🇸');
+
+  // A complete list of ALL languages the app knows. Filtering happens before passing to this widget.
+  static const List<Language> availableLanguages = [
+    Language(
+        code: 'en', displayName: 'EN', promptName: 'English', flag: '🇺🇸'),
+    Language(
+        code: 'es', displayName: 'ES', promptName: 'Spanish', flag: '🇪🇸'),
+    Language(code: 'fr', displayName: 'FR', promptName: 'French', flag: '🇫🇷'),
+    Language(code: 'de', displayName: 'DE', promptName: 'German', flag: '🇩🇪'),
+    Language(
+        code: 'ja', displayName: 'JP', promptName: 'Japanese', flag: '🇯🇵'),
+    Language(code: 'ko', displayName: 'KR', promptName: 'Korean', flag: '🇰🇷'),
   ];
 
-  // The currently selected language. Defaults to English.
-  Language _selectedLanguage = languages[0];
+  // The currently selected language, provided by the parent widget.
+  final Language selectedLanguage;
+
+  // The list of languages to actually show in the dropdown, provided by the parent.
+  final List<Language> languagesToDisplayInPill;
+
+  // Callback to notify the parent when a new language is chosen.
+  // It passes the entire Language object for maximum flexibility.
+  final ValueChanged<Language> onLanguageSelected;
+
+  LanguageSelectorPill({
+    super.key,
+    required this.languagesToDisplayInPill,
+    required this.selectedLanguage,
+    required this.onLanguageSelected,
+  });
 
   @override
   Widget build(BuildContext context) {
-    // DropdownButton is a great built-in widget for this purpose.
-    // We customize it to look like a pill.
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 1.0),
+      padding: const EdgeInsets.symmetric(
+          horizontal: 6.0, vertical: 1.0), // Further reduced padding
       decoration: BoxDecoration(
-        color: Colors.grey[200],
-        borderRadius: BorderRadius.circular(20.0), // Pill shape
+        color: Colors.orange[500], // Orange background
+        borderRadius: BorderRadius.circular(30.0), // Pill shape
+        border: Border.all(
+          color: Colors.orange[500]!, // Thinner orange border
+          width: 2.0, // Thinner border
+        ),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<Language>(
-          // The currently selected language value.
-          value: _selectedLanguage,
-          // The dropdown arrow icon
-          icon: const Icon(Icons.keyboard_arrow_down, color: Colors.black54),
-          // Style for the items in the dropdown menu.
-          dropdownColor: Colors.white,
-          // Generate the list of items for the dropdown menu.
-          items: languages.map((Language language) {
-            return DropdownMenuItem<Language>(
-              value: language,
-              child: Row(
-                children: [
-                  Text(language.flag, style: const TextStyle(fontSize: 14)),
-                  const SizedBox(width: 8),
-                  Text(language.name),
-                ],
-              ),
-            );
-          }).toList(),
-          // This function is called when a new language is selected.
+          value: selectedLanguage,
+          isDense: true, // Reduces the button's height.
+          icon: Icon(
+            Icons.keyboard_arrow_down_rounded,
+            color: colorScheme.onSurface.withOpacity(0.6),
+            size: 16, // Further reduced icon size
+          ),
+          dropdownColor: colorScheme.surface,
+          // When a new language is selected from the list.
           onChanged: (Language? newLanguage) {
             if (newLanguage != null) {
-              setState(() {
-                _selectedLanguage = newLanguage;
-              });
-              // --- SUPABASE INTEGRATION POINT ---
-              // Call the callback function with the selected language code.
-              widget.onLanguageSelected(newLanguage.code);
+              onLanguageSelected(newLanguage);
             }
           },
-          // Customize the displayed item (the pill itself).
-          selectedItemBuilder: (BuildContext context) {
-            return languages.map<Widget>((Language language) {
-              return Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(_selectedLanguage.flag,
-                      style: const TextStyle(fontSize: 14)),
-                  const SizedBox(
-                    width: 8,
-                  ),
-                  Text(
-                    _selectedLanguage.name,
-                    style: const TextStyle(
-                      color: Colors.black87,
-                      fontWeight: FontWeight.w600,
+          // How the currently selected item (the pill's content) is displayed.
+          selectedItemBuilder: (context) {
+            return languagesToDisplayInPill.map<Widget>((language) {
+              // Use the passed list
+              return Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      language.displayName,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white, // Orange text color
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11, // Reduced text font size
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               );
             }).toList();
           },
+          // How the items in the dropdown menu are displayed.
+          items: languagesToDisplayInPill
+              .map<DropdownMenuItem<Language>>((language) {
+            // Use the passed list
+            return DropdownMenuItem<Language>(
+              value: language,
+              child: Center(
+                // Wrap the content in a Center widget
+                child: Row(
+                  mainAxisAlignment:
+                      MainAxisAlignment.center, // Center the row content
+                  children: [
+                    Text(
+                      language.displayName,
+                      style: TextStyle(
+                        color: colorScheme.onSurface,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 13, // Adjusted font size in dropdown
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
         ),
       ),
     );

@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:unmute/features/chat/domain/entities/message_entity.dart'; // Ensure this path is correct
+import 'package:unmute/features/chat/presentation/widgets/language_selector_pill.dart'; // Import Language
 
 abstract class ChatEvent extends Equatable {
   const ChatEvent(); // Constructor for base class
@@ -29,9 +30,21 @@ class MessagesReceived extends ChatEvent {
 }
 
 class LanguageChanged extends ChatEvent {
-  final String languageCode;
-  const LanguageChanged(this.languageCode);
+  final Language language; // Changed from languageCode to Language object
+  const LanguageChanged(this.language);
 
   @override
-  List<Object> get props => [languageCode];
+  List<Object> get props => [language];
+}
+
+class ChatHistoryCleared extends ChatEvent {
+  const ChatHistoryCleared();
+}
+
+class NativeLanguageSet extends ChatEvent {
+  final Language language;
+  const NativeLanguageSet(this.language);
+
+  @override
+  List<Object> get props => [language];
 }

@@ -6,16 +6,74 @@ import 'package:unmute/features/chat/domain/entities/message_entity.dart';
 class ChatService {
   final _supabase = Supabase.instance.client;
 
+  /// Gets the current authenticated user's ID.
+  String? get currentUserId => _supabase.auth.currentUser?.id;
+
   /// Stores the user's selected target language in their profile.
   Future<void> setTargetLanguage(String languageCode) async {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) return;
 
-    // Updates the 'target_language' column in the user's profile.
-    // Make sure you have a 'profiles' table with this column.
+    await _supabase
+        .from(
+      'profiles',
+    )
+        .update({'target_language': languageCode}).eq('id', userId);
+  }
+
+  /// Fetches the user's selected target language from their profile.
+  Future<String?> getTargetLanguage() async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return null;
+
+    try {
+      final response = await _supabase
+          .from('profiles')
+          .select('target_language')
+          .eq('id', userId)
+          .single(); // .single() expects one row or throws an error.
+
+      // Ensure response is not empty and contains the target_language field.
+      if (response.isNotEmpty && response['target_language'] != null) {
+        return response['target_language'] as String;
+      }
+    } catch (e) {
+      print('Error fetching target language: $e');
+    }
+    return null;
+  }
+
+  /// Stores the user's selected native language in their profile.
+  Future<void> setNativeLanguage(String languageCode) async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return;
+
     await _supabase
         .from('profiles')
-        .update({'target_language': languageCode}).eq('id', userId);
+        .update({'native_language': languageCode}).eq('id', userId);
+  }
+
+  /// Fetches the user's selected native language from their profile.
+  Future<String?> getNativeLanguage() async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return null;
+
+    try {
+      final response = await _supabase
+          .from('profiles')
+          .select('native_language')
+          .eq('id', userId)
+          .single();
+
+      if (response.isNotEmpty && response['native_language'] != null) {
+        return response['native_language'] as String;
+      }
+    } catch (e) {
+      // It's okay if native_language is not set, might be a new user.
+      // Or if the column doesn't exist yet.
+      print('Info: Could not fetch native language or not set: $e');
+    }
+    return null;
   }
 
   /// Subscribes to the real-time message stream from the 'messages' table.
@@ -41,6 +99,8 @@ class ChatService {
                 output: map['output'],
                 targetLanguage: map['target_language'],
                 romanisation: map['romanisation'],
+                detectedLanguageCode:
+                    map['detected_language'], // Map the new field
                 breakdown: map['breakdown'] != null
                     ? List<Map<String, dynamic>>.from(map['breakdown'])
                     : null,
@@ -55,6 +115,7 @@ class ChatService {
                 content: map['content'],
                 senderId: map['sender_id'],
                 createdAt: DateTime.parse(map['created_at']),
+                detectedLanguageCode: null, // Set to null on error
                 output: map['output'],
                 breakdown: null, // Set to null to prevent freezing
               );
@@ -84,6 +145,7 @@ class ChatService {
   Future<void> saveMessage({
     required String originalContent,
     required Map<String, dynamic> translationData,
+    required String targetLanguage,
   }) async {
     final userId = _supabase.auth.currentUser!.id;
 
@@ -93,12 +155,27 @@ class ChatService {
       'content': originalContent,
       'sender_id': userId,
       'output': translationData['utterance'],
-      'target_language': translationData['detected_source'],
+      'target_language': targetLanguage, // Correctly uses the passed language
       'romanisation': translationData['romanization'],
+      'detected_language': translationData[
+          'detected_language'], // Include detected language from function response
       'breakdown': translationData['breakdown'],
     };
 
     // Insert the complete row into the 'messages' table.
     await _supabase.from('messages').insert(messageToSave);
+  }
+
+  /// Deletes all messages for the current user.
+  Future<void> clearChatHistory() async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) {
+      throw Exception('User not authenticated. Cannot clear chat history.');
+    }
+    try {
+      await _supabase.from('messages').delete().eq('sender_id', userId);
+    } catch (e) {
+      throw Exception('Failed to clear chat history from database: $e');
+    }
   }
 }
