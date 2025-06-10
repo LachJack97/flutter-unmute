@@ -27,3 +27,11 @@ class MessagesReceived extends ChatEvent {
   @override
   List<Object> get props => [messages];
 }
+
+class LanguageChanged extends ChatEvent {
+  final String languageCode;
+  const LanguageChanged(this.languageCode);
+
+  @override
+  List<Object> get props => [languageCode];
+}

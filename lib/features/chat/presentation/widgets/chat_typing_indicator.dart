@@ -14,7 +14,8 @@ class TypingIndicator extends StatelessWidget {
           color: Colors.grey[200],
           borderRadius: BorderRadius.circular(15),
         ),
-        child: const Text('...', style: TextStyle(fontSize: 16)),
+        child: const Text('...',
+            style: TextStyle(fontSize: 16, color: Colors.black87)),
       ),
     );
   }

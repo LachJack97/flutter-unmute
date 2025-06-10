@@ -6,6 +6,18 @@ import 'package:unmute/features/chat/domain/entities/message_entity.dart';
 class ChatService {
   final _supabase = Supabase.instance.client;
 
+  /// Stores the user's selected target language in their profile.
+  Future<void> setTargetLanguage(String languageCode) async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return;
+
+    // Updates the 'target_language' column in the user's profile.
+    // Make sure you have a 'profiles' table with this column.
+    await _supabase
+        .from('profiles')
+        .update({'target_language': languageCode}).eq('id', userId);
+  }
+
   /// Subscribes to the real-time message stream from the 'messages' table.
   /// This listens for new messages being inserted or updated.
   Stream<List<MessageEntity>> getMessages() {
@@ -51,11 +63,12 @@ class ChatService {
         });
   }
 
-  /// Directly calls the 'translate-message' Edge Function to get a translation.
-  Future<Map<String, dynamic>> getTranslation(String text) async {
+  /// Calls the 'translate-message' Edge Function, now with a target language.
+  Future<Map<String, dynamic>> getTranslation(
+      String text, String targetLanguage) async {
     final response = await _supabase.functions.invoke(
       'translate-message',
-      body: {'text': text},
+      body: {'text': text, 'target_language': targetLanguage},
     );
 
     if (response.status != 200) {

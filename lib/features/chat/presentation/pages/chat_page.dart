@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:unmute/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:unmute/features/auth/presentation/bloc/auth_event.dart'; // Import for Auth Events
-import 'package:unmute/features/chat/presentation/bloc/chat_bloc.dart';
+import 'package:unmute/features/chat/presentation/bloc/chat_bloc.dart'
+    hide LanguageChanged;
 import 'package:unmute/features/chat/presentation/bloc/chat_event.dart';
 import 'package:unmute/features/chat/presentation/bloc/chat_state.dart';
 
@@ -10,6 +11,7 @@ import 'package:unmute/features/chat/presentation/bloc/chat_state.dart';
 import 'package:unmute/features/chat/presentation/widgets/chat_input_bar.dart';
 import 'package:unmute/features/chat/presentation/widgets/chat_message_item.dart';
 import 'package:unmute/features/chat/presentation/widgets/chat_typing_indicator.dart';
+import 'package:unmute/features/chat/presentation/widgets/language_selector_pill.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
@@ -48,17 +50,26 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
+  void _onLanguageSelected(String? languageCode) {
+    if (languageCode != null) {
+      context.read<ChatBloc>().add(LanguageChanged(languageCode));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Unmute Chat'),
+        title: const Text('Chat'),
+        centerTitle: true,
         actions: [
+          LanguageSelectorPill(
+              onLanguageSelected:
+                  _onLanguageSelected), // Language selector pill
+          // Logout button
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
-              // --- THIS IS THE CORRECTED LINE ---
-              // We now instantiate the 'LogoutRequested' class from your auth_event.dart file.
               context.read<AuthBloc>().add(const AuthLogoutRequested());
             },
           ),

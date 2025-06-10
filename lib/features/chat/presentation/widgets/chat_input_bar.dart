@@ -26,7 +26,11 @@ class ChatInputBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          IconButton(icon: const Icon(Icons.send), onPressed: onSend),
+          IconButton(
+              icon: const Icon(Icons.send),
+              style: ButtonStyle(
+                  iconColor: MaterialStateProperty.all(Colors.orange[700])),
+              onPressed: onSend),
         ],
       ),
     );

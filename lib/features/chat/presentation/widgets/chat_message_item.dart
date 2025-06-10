@@ -28,7 +28,7 @@ class _ChatMessageItemState extends State<ChatMessageItem> {
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor,
+                color: Colors.orange[500],
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
@@ -65,7 +65,8 @@ class _ChatMessageItemState extends State<ChatMessageItem> {
                         widget.message.romanisation!,
                         style: const TextStyle(
                           fontStyle: FontStyle.italic,
-                          color: Colors.black54,
+                          color: Colors.black87,
+                          fontSize: 14,
                         ),
                       ),
                     ],
@@ -81,8 +82,8 @@ class _ChatMessageItemState extends State<ChatMessageItem> {
                         child: Text(
                           _isExpanded ? 'Hide breakdown ↑' : 'Show breakdown ↓',
                           style: TextStyle(
-                            color: Theme.of(context).primaryColor,
                             fontWeight: FontWeight.w500,
+                            color: Colors.blue[900],
                           ),
                         ),
                       ),
@@ -117,11 +118,20 @@ class _BreakdownList extends StatelessWidget {
               children: [
                 Text(
                   '${part['part'] ?? ''}',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text('— ${part['gloss'] ?? ''}'),
+                  child: Text(
+                    '— ${part['gloss'] ?? ''}',
+                    style: const TextStyle(
+                      color: Colors.black87,
+                      fontSize: 14,
+                    ),
+                  ),
                 ),
               ],
             ),
