@@ -1,3 +1,4 @@
+// lib/app/unmute_app.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:unmute/app/app_router.dart';
@@ -18,24 +19,20 @@ class UnmuteApp extends StatelessWidget {
       providers: [
         BlocProvider<AuthBloc>(
           create: (context) {
-            // This is the corrected creation logic.
-
-            // 1. Create the repository instance, which handles talking to Supabase.
             final authRepository = AuthRepositoryImpl();
-
-            // 2. Create an instance of each use case, passing the repository to them.
             final checkAuthStatus = CheckAuthStatus(authRepository);
             final loginUser = LoginUser(authRepository);
             final logoutUser = LogoutUser(authRepository);
             final signUpUser = SignUpUser(authRepository);
 
-            // 3. Create the AuthBloc, providing the use cases it depends on.
+            // Create the AuthBloc and add the initial event.
+            // We now use the `AuthAppStarted` class directly.
             return AuthBloc(
               checkAuthStatus: checkAuthStatus,
               loginUser: loginUser,
               logoutUser: logoutUser,
               signUpUser: signUpUser,
-            )..add(const AuthEvent.checkStatus()); // Dispatch the initial event
+            )..add(const AuthAppStarted()); // Dispatch the initial event
           },
         ),
       ],

@@ -1,45 +1,47 @@
+// lib/features/auth/presentation/bloc/auth_state.dart
 import 'package:equatable/equatable.dart';
+import 'package:unmute/features/auth/domain/entities/user_entity.dart';
 
-abstract class AuthEvent extends Equatable {
-  const AuthEvent();
+abstract class AuthState extends Equatable {
+  const AuthState();
 
   @override
   List<Object?> get props => [];
 }
 
-/// Dispatched when the app starts to check the initial auth status.
-class AuthAppStarted extends AuthEvent {
-  const AuthAppStarted();
+/// The initial state before any authentication checks have been made.
+class AuthInitial extends AuthState {
+  const AuthInitial();
 }
 
-/// Dispatched when the user taps the login button.
-class AuthLoginRequested extends AuthEvent {
-  final String email;
-  final String password;
+/// The state when an async authentication operation is in progress.
+class AuthLoading extends AuthState {
+  const AuthLoading();
+}
 
-  const AuthLoginRequested({required this.email, required this.password});
+/// The state when the user is successfully authenticated.
+/// It holds the authenticated user's data.
+class AuthAuthenticated extends AuthState {
+  final UserEntity user;
+
+  const AuthAuthenticated({required this.user});
 
   @override
-  List<Object> get props => [email, password];
+  List<Object?> get props => [user];
 }
 
-/// Dispatched when the user taps the register button.
-class AuthRegisterRequested extends AuthEvent {
-  final String email;
-  final String password;
-  final String username;
+/// The state when there is no authenticated user.
+class AuthUnauthenticated extends AuthState {
+  const AuthUnauthenticated();
+}
 
-  const AuthRegisterRequested({
-    required this.email,
-    required this.password,
-    required this.username,
-  });
+/// The state when an error has occurred during an authentication process.
+/// It holds the error message to be displayed to the user.
+class AuthError extends AuthState {
+  final String message;
+
+  const AuthError({required this.message});
 
   @override
-  List<Object> get props => [email, password, username];
-}
-
-/// Dispatched when the user taps the logout button.
-class AuthLogoutRequested extends AuthEvent {
-  const AuthLogoutRequested();
+  List<Object?> get props => [message];
 }

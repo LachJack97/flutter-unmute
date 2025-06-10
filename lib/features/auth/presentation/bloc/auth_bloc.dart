@@ -1,3 +1,4 @@
+// lib/features/auth/presentation/bloc/auth_bloc.dart
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:unmute/features/auth/domain/usecases/check_auth_status.dart';
@@ -7,6 +8,11 @@ import 'package:unmute/features/auth/domain/usecases/sign_up_user.dart';
 
 import 'auth_event.dart';
 import 'auth_state.dart';
+
+// Exporting the event and state files allows other parts of the app
+// to access AuthEvent and AuthState classes by importing only this file.
+export 'auth_event.dart';
+export 'auth_state.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final CheckAuthStatus _checkAuthStatus;
@@ -52,7 +58,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           await _loginUser(email: event.email, password: event.password);
       emit(AuthAuthenticated(user: user));
     } catch (e) {
-      emit(AuthError(e.toString().replaceFirst('Exception: ', '')));
+      emit(AuthError(message: e.toString().replaceFirst('Exception: ', '')));
     }
   }
 
@@ -64,20 +70,23 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         email: event.email,
         password: event.password,
       );
-      // After registration, emit a success message via the error state
-      // and revert to unauthenticated so they can go to the login page.
       emit(const AuthError(
-          'Success! Please check your email to confirm your account.'));
+          message:
+              'Success! Please check your email to confirm your account.'));
       emit(const AuthUnauthenticated());
     } catch (e) {
-      emit(AuthError(e.toString().replaceFirst('Exception: ', '')));
+      emit(AuthError(message: e.toString().replaceFirst('Exception: ', '')));
     }
   }
 
   Future<void> _onLogoutRequested(
       AuthLogoutRequested event, Emitter<AuthState> emit) async {
     emit(const AuthLoading());
-    await _logoutUser();
-    emit(const AuthUnauthenticated());
+    try {
+      await _logoutUser();
+      emit(const AuthUnauthenticated());
+    } catch (e) {
+      emit(AuthError(message: e.toString().replaceFirst('Exception: ', '')));
+    }
   }
 }

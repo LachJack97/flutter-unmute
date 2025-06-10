@@ -1,5 +1,4 @@
 import 'package:go_router/go_router.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:unmute/features/chat/data/repositories/chat_service.dart';
 import 'package:unmute/features/chat/presentation/bloc/chat_bloc.dart';

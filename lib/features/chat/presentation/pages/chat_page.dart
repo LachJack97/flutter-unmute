@@ -59,7 +59,7 @@ class _ChatPageState extends State<ChatPage> {
             onPressed: () {
               // --- THIS IS THE CORRECTED LINE ---
               // We now instantiate the 'LogoutRequested' class from your auth_event.dart file.
-              context.read<AuthBloc>().add(const LogoutRequested());
+              context.read<AuthBloc>().add(const AuthLogoutRequested());
             },
           ),
         ],

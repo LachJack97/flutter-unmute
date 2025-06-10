@@ -4,7 +4,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 // Import your main app widget and API constants.
 // Ensure these files exist in the specified paths relative to your lib folder.
 import 'package:unmute/app/unmute_app.dart';
-import 'package:unmute/core/constants/api_constants.dart';
 
 /// The main entry point of the Flutter application.
 /// This function initializes essential services before the UI starts.
