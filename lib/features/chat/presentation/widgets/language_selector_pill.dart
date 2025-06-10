@@ -27,11 +27,11 @@ class _LanguageSelectorPillState extends State<LanguageSelectorPill> {
   // List of available languages. You can easily add or remove languages here.
   static const List<Language> languages = [
     Language(code: 'en', name: 'EN', flag: '🇺🇸'),
-    Language(code: 'es', name: 'Español', flag: '🇪🇸'),
-    Language(code: 'fr', name: 'Français', flag: '🇫🇷'),
-    Language(code: 'de', name: 'Deutsch', flag: '🇩🇪'),
-    Language(code: 'ja', name: '日本語', flag: '🇯🇵'),
-    Language(code: 'ko', name: '한국어', flag: '🇰🇷'),
+    Language(code: 'es', name: 'ES', flag: '🇪🇸'),
+    Language(code: 'fr', name: 'FR', flag: '🇫🇷'),
+    Language(code: 'de', name: 'DE', flag: '🇩🇪'),
+    Language(code: 'ja', name: 'JP', flag: '🇯🇵'),
+    Language(code: 'ko', name: 'KR', flag: '🇰🇷'),
   ];
 
   // The currently selected language. Defaults to English.
@@ -42,7 +42,7 @@ class _LanguageSelectorPillState extends State<LanguageSelectorPill> {
     // DropdownButton is a great built-in widget for this purpose.
     // We customize it to look like a pill.
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 2.0),
+      padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 1.0),
       decoration: BoxDecoration(
         color: Colors.grey[200],
         borderRadius: BorderRadius.circular(20.0), // Pill shape
@@ -61,7 +61,7 @@ class _LanguageSelectorPillState extends State<LanguageSelectorPill> {
               value: language,
               child: Row(
                 children: [
-                  Text(language.flag, style: const TextStyle(fontSize: 20)),
+                  Text(language.flag, style: const TextStyle(fontSize: 14)),
                   const SizedBox(width: 8),
                   Text(language.name),
                 ],
@@ -86,7 +86,7 @@ class _LanguageSelectorPillState extends State<LanguageSelectorPill> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(_selectedLanguage.flag,
-                      style: const TextStyle(fontSize: 20)),
+                      style: const TextStyle(fontSize: 14)),
                   const SizedBox(
                     width: 8,
                   ),
