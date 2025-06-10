@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:unmute/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:unmute/features/auth/presentation/bloc/auth_bloc.dart'; // Ensure AuthBloc is accessible
 import 'package:unmute/features/chat/presentation/bloc/chat_bloc.dart';
+import 'package:unmute/features/chat/presentation/bloc/chat_event.dart'; // Import ChatEvent
+import 'package:unmute/features/chat/presentation/bloc/chat_state.dart'; // Import ChatState
 import 'package:unmute/features/chat/presentation/widgets/message_bubble.dart';
 
 class ChatPage extends StatefulWidget {
@@ -25,7 +27,8 @@ class _ChatPageState extends State<ChatPage> {
   void _sendMessage() {
     final content = _messageController.text.trim();
     if (content.isNotEmpty) {
-      context.read<ChatBloc>().add(ChatEvent.messageSent(content));
+      // Changed from ChatEvent.messageSent to MessageSent (the Equatable class)
+      context.read<ChatBloc>().add(MessageSent(content));
       _messageController.clear();
       FocusScope.of(context).unfocus();
     }
@@ -50,6 +53,10 @@ class _ChatPageState extends State<ChatPage> {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
+              // Assuming AuthBloc's events are also Equatable-based,
+              // replace with the direct event class name if not using Freezed.
+              // For example: context.read<AuthBloc>().add(const LogoutRequested());
+              // If AuthBloc still uses Freezed, keep AuthEvent.logoutRequested()
               context.read<AuthBloc>().add(const AuthEvent.logoutRequested());
             },
           ),
@@ -60,49 +67,45 @@ class _ChatPageState extends State<ChatPage> {
           Expanded(
             child: BlocConsumer<ChatBloc, ChatState>(
               listener: (context, state) {
-                // Changed 'whenOrNull' to 'maybeWhen' as 'whenOrNull' is not a standard method for Freezed unions.
-                // 'maybeWhen' allows providing callbacks for specific states and an optional orElse for unhandled states.
-                state.maybeWhen(
-                  loaded: (messages, isTyping) {
-                    Future.delayed(
-                        const Duration(milliseconds: 100), _scrollToBottom);
-                  },
-                  orElse: () {
-                    // Provide a default orElse callback if other states don't need specific handling here.
-                    // This is necessary for 'maybeWhen' if not all cases are explicitly handled.
-                  },
-                );
+                // Using 'is' check for Equatable states instead of 'whenOrNull'/'maybeWhen'
+                if (state is ChatLoaded) {
+                  Future.delayed(
+                      const Duration(milliseconds: 100), _scrollToBottom);
+                }
               },
               builder: (context, state) {
-                return state.when(
-                  initial: () => const Center(child: Text('Starting chat...')),
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (message) => Center(child: Text('Error: $message')),
-                  loaded: (messages, isTyping) {
-                    if (messages.isEmpty && !isTyping) {
-                      return const Center(
-                          child: Text('No messages yet. Say hi!'));
-                    }
+                // Using 'is' checks for Equatable states instead of 'when'
+                if (state is ChatInitial) {
+                  return const Center(child: Text('Starting chat...'));
+                } else if (state is ChatLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (state is ChatError) {
+                  return Center(child: Text('Error: ${state.message}'));
+                } else if (state is ChatLoaded) {
+                  if (state.messages.isEmpty && !state.isTyping) {
+                    return const Center(
+                        child: Text('No messages yet. Say hi!'));
+                  }
 
-                    // --- THIS IS THE UPDATED UI LOGIC ---
-                    return ListView.builder(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      // Add 1 to the item count if the AI is typing
-                      itemCount: messages.length + (isTyping ? 1 : 0),
-                      itemBuilder: (context, index) {
-                        // If it's the last item and we're typing, show the indicator
-                        if (isTyping && index == messages.length) {
-                          return const TypingIndicator();
-                        }
-                        // Otherwise, build the regular message bubble
-                        final message = messages[index];
-                        return MessageBubble(message: message);
-                      },
-                    );
-                  },
-                );
+                  // --- THIS IS THE UI LOGIC FOR LOADED STATE ---
+                  return ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    // Add 1 to the item count if the AI is typing
+                    itemCount: state.messages.length + (state.isTyping ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      // If it's the last item and we're typing, show the indicator
+                      if (state.isTyping && index == state.messages.length) {
+                        return const TypingIndicator();
+                      }
+                      // Otherwise, build the regular message bubble
+                      final message = state.messages[index];
+                      return MessageBubble(message: message);
+                    },
+                  );
+                }
+                // Fallback for any unhandled state (should ideally not be reached with exhaustive checks)
+                return const SizedBox.shrink();
               },
             ),
           ),
@@ -116,7 +119,7 @@ class _ChatPageState extends State<ChatPage> {
   }
 }
 
-// The message input widget (unchanged)
+// The message input widget (unchanged from your provided code)
 class _MessageInput extends StatelessWidget {
   final TextEditingController controller;
   final VoidCallback onSend;
@@ -147,7 +150,7 @@ class _MessageInput extends StatelessWidget {
   }
 }
 
-// --- NEW WIDGET FOR THE TYPING INDICATOR ---
+// --- NEW WIDGET FOR THE TYPING INDICATOR (unchanged from your provided code) ---
 class TypingIndicator extends StatelessWidget {
   const TypingIndicator({super.key});
 

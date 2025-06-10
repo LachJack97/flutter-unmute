@@ -1,22 +1,45 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:unmute/features/chat/domain/entities/message_entity.dart';
+import 'package:equatable/equatable.dart';
+import 'package:unmute/features/chat/domain/entities/message_entity.dart'; // Ensure this path is correct
 
-part 'chat_state.freezed.dart';
+abstract class ChatState extends Equatable {
+  const ChatState(); // Constructor for base class
 
-@freezed
-sealed class ChatState with _$ChatState {
-  /// Initial state before anything happens.
-  const factory ChatState.initial() = _Initial;
+  @override
+  List<Object> get props => [];
+}
 
-  /// Loading indicator while subscribing or waiting on network.
-  const factory ChatState.loading() = _Loading;
+class ChatInitial extends ChatState {
+  const ChatInitial();
+}
 
-  /// Loaded state with current messages and optional typing indicator.
-  const factory ChatState.loaded({
-    required List<MessageEntity> messages,
-    @Default(false) bool isTyping,
-  }) = _Loaded;
+class ChatLoading extends ChatState {
+  const ChatLoading();
+}
 
-  /// Error state with a message.
-  const factory ChatState.error({required String message}) = _Error;
+class ChatLoaded extends ChatState {
+  final List<MessageEntity> messages;
+  final bool isTyping;
+
+  const ChatLoaded({required this.messages, this.isTyping = false});
+
+  @override
+  List<Object> get props => [messages, isTyping];
+
+  ChatLoaded copyWith({
+    List<MessageEntity>? messages,
+    bool? isTyping,
+  }) {
+    return ChatLoaded(
+      messages: messages ?? this.messages,
+      isTyping: isTyping ?? this.isTyping,
+    );
+  }
+}
+
+class ChatError extends ChatState {
+  final String message;
+  const ChatError(this.message);
+
+  @override
+  List<Object> get props => [message];
 }
