@@ -16,6 +16,10 @@ dependencies:
   flutter_bloc: ^8.1.6 # Using latest stable version
   freezed_annotation: ^2.4.1 # This should match the freezed version's requirement
   equatable: ^2.0.7
+  image_picker: ^1.1.2 # Or the latest version
+  dio: ^5.2.0 # Using latest stable version
+  collection: ^1.18.0 # Add this for firstWhereOrNull
+  cached_network_image: ^3.2.0 # Using latest stable version
 
 dev_dependencies:
   flutter_test:

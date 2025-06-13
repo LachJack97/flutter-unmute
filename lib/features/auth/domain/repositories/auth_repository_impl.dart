@@ -53,6 +53,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String email,
     required String password,
   }) async {
+    // Added async and moved the try block inside the method body
     try {
       await _supabaseClient.auth.signUp(
         email: email,

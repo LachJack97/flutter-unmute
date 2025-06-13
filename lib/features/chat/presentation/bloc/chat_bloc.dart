@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:collection/collection.dart'; // Import for firstWhereOrNull
 import 'package:unmute/features/chat/data/repositories/chat_service.dart';
-import 'package:collection/collection.dart'; // Import collection for firstWhereOrNull
 import 'package:unmute/features/chat/domain/entities/message_entity.dart';
 import 'package:unmute/features/chat/presentation/bloc/chat_event.dart';
 import 'package:unmute/features/chat/presentation/bloc/chat_state.dart';
@@ -10,8 +10,7 @@ import 'package:unmute/features/chat/presentation/widgets/language_selector_pill
 class ChatBloc extends Bloc<ChatEvent, ChatState> {
   final ChatService _chatService;
   StreamSubscription<List<MessageEntity>>? _messageSubscription;
-  Language _currentTargetLanguage = LanguageSelectorPill.defaultLanguage;
-  Language? _nativeLanguage;
+  Language? _currentTargetLanguage; // Now nullable, initialized to null
 
   ChatBloc({required ChatService chatService})
       : _chatService = chatService,
@@ -21,7 +20,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     on<MessagesReceived>(_onMessagesReceived);
     on<LanguageChanged>(_onLanguageChanged);
     on<ChatHistoryCleared>(_onChatHistoryCleared);
-    on<NativeLanguageSet>(_onNativeLanguageSet);
+    on<ImageMessageSent>(_onImageMessageSent);
   }
 
   Future<void> _onSubscriptionRequested(
@@ -30,60 +29,22 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   ) async {
     emit(const ChatLoading());
 
-    // Attempt to load the user's native language first
-    try {
-      final String? nativeLangCode = await _chatService.getNativeLanguage();
-      if (nativeLangCode != null) {
-        _nativeLanguage =
-            LanguageSelectorPill.availableLanguages.firstWhereOrNull(
-          (lang) => lang.code == nativeLangCode,
-        );
-      }
-    } catch (e) {
-      print("Error loading native language: $e");
-      _nativeLanguage = null; // Default to no native language if error
-    }
-
     // Attempt to load the user's preferred target language
     try {
       final String? targetLangCode = await _chatService.getTargetLanguage();
       if (targetLangCode != null) {
-        final prefTargetLang =
-            LanguageSelectorPill.availableLanguages.firstWhere(
+        // Use firstWhereOrNull to safely handle cases where the code might not match
+        _currentTargetLanguage =
+            LanguageSelectorPill.availableLanguages.firstWhereOrNull(
           (lang) => lang.code == targetLangCode,
-          orElse: () => LanguageSelectorPill.defaultLanguage,
         );
-        _currentTargetLanguage = prefTargetLang;
+      } else {
+        _currentTargetLanguage =
+            null; // Explicitly set to null if no preference found
       }
     } catch (e) {
-      print("Error loading target language preference: $e");
-      // Keep _currentTargetLanguage as default if loading fails
-    }
-
-    // Filter translatable languages for the pill (excluding native language)
-    List<Language> translatableLanguagesForPill = LanguageSelectorPill
-        .availableLanguages
-        .where((lang) => lang.code != _nativeLanguage?.code)
-        .toList();
-
-    if (translatableLanguagesForPill.isEmpty) {
-      // Fallback if filtering results in an empty list (e.g., only one language defined and it's native)
-      translatableLanguagesForPill = [
-        LanguageSelectorPill.defaultLanguage
-      ]; // Or handle error
-    }
-
-    // If current target language is the native language, reset target to a valid translatable one
-    if (_nativeLanguage != null &&
-        _currentTargetLanguage.code == _nativeLanguage!.code) {
-      _currentTargetLanguage = translatableLanguagesForPill.firstWhere(
-        (lang) => lang.code != _nativeLanguage?.code, // Ensure it's not native
-        orElse: () => translatableLanguagesForPill.isNotEmpty
-            ? translatableLanguagesForPill.first
-            : LanguageSelectorPill.defaultLanguage, // Fallback
-      );
-      // Persist this change if needed, or let user re-select
-      // await _chatService.setTargetLanguage(_currentTargetLanguage.code);
+      // Consider using a logger here instead of print
+      _currentTargetLanguage = null; // Default to null on error
     }
 
     _messageSubscription?.cancel();
@@ -97,18 +58,9 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     MessagesReceived event,
     Emitter<ChatState> emit,
   ) {
-    // Ensure translatableLanguagesForPill is up-to-date based on _nativeLanguage
-    final translatableLanguagesForPill = LanguageSelectorPill.availableLanguages
-        .where((lang) => lang.code != _nativeLanguage?.code)
-        .toList();
-
     emit(ChatLoaded(
       messages: event.messages,
       selectedLanguage: _currentTargetLanguage,
-      nativeLanguage: _nativeLanguage,
-      translatableLanguagesForPill: translatableLanguagesForPill.isNotEmpty
-          ? translatableLanguagesForPill
-          : [LanguageSelectorPill.defaultLanguage],
     ));
   }
 
@@ -135,7 +87,8 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
 
     // Create a temporary message for optimistic UI update
     final tempMessage = MessageEntity(
-      id: 'temp_${DateTime.now().millisecondsSinceEpoch}', // Client-side temporary ID
+      // Cannot be const due to DateTime.now()
+      id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
       content: event.content,
       senderId: userId,
       createdAt: DateTime.now(),
@@ -149,9 +102,13 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     ));
 
     try {
+      if (_currentTargetLanguage == null) {
+        // This case should ideally be prevented by the UI (e.g., disable send button)
+        throw Exception("Target language not selected.");
+      }
       // First, get the translation data which includes the detected language
       final translationData = await _chatService.getTranslation(
-          event.content, _currentTargetLanguage.code);
+          event.content, _currentTargetLanguage!.code); // Added null assertion
 
       String? detectedLanguageCode =
           translationData['detected_language'] as String?;
@@ -160,7 +117,8 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       Map<String, dynamic> effectiveTranslationData;
 
       if (detectedLanguageCode != null &&
-          detectedLanguageCode == _currentTargetLanguage.code) {
+          detectedLanguageCode == _currentTargetLanguage!.code) {
+        // Added null assertion
         // Source and target languages are the same.
         // Set translation-specific fields to null so the AI bubble doesn't show a redundant translation.
         effectiveTranslationData = {
@@ -178,7 +136,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       await _chatService.saveMessage(
         originalContent: event.content,
         translationData: effectiveTranslationData, // Use the processed data
-        targetLanguage: _currentTargetLanguage.code,
+        targetLanguage: _currentTargetLanguage!.code, // Added null assertion
       );
       // On success, the stream listener (_onMessagesReceived) will update the list
       // with the final message from the DB (including ID and translation).
@@ -196,74 +154,109 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     Emitter<ChatState> emit,
   ) async {
     _currentTargetLanguage = event.language;
-    await _chatService.setTargetLanguage(_currentTargetLanguage.code);
+    await _chatService.setTargetLanguage(_currentTargetLanguage!
+        .code); // Added null check, assuming language in event is never null
 
     // If already loaded, update the state with the new language
     if (state is ChatLoaded) {
-      // Keep native language and re-filter translatable languages if necessary (though not strictly needed here)
       final currentLoadedState = state as ChatLoaded;
-      final translatableLanguagesForPill = LanguageSelectorPill
-          .availableLanguages
-          .where((lang) => lang.code != _nativeLanguage?.code)
-          .toList();
-
       emit(currentLoadedState.copyWith(
-          selectedLanguage: _currentTargetLanguage,
-          translatableLanguagesForPill: translatableLanguagesForPill.isNotEmpty
-              ? translatableLanguagesForPill
-              : [LanguageSelectorPill.defaultLanguage]));
-    }
-  }
-
-  Future<void> _onNativeLanguageSet(
-    NativeLanguageSet event,
-    Emitter<ChatState> emit,
-  ) async {
-    _nativeLanguage = event.language;
-    await _chatService.setNativeLanguage(_nativeLanguage!.code);
-
-    // Re-filter translatable languages
-    List<Language> translatableLanguagesForPill = LanguageSelectorPill
-        .availableLanguages
-        .where((lang) => lang.code != _nativeLanguage?.code)
-        .toList();
-
-    if (translatableLanguagesForPill.isEmpty) {
-      translatableLanguagesForPill = [LanguageSelectorPill.defaultLanguage];
-    }
-
-    // If current target language is now the native language, reset target
-    if (_currentTargetLanguage.code == _nativeLanguage!.code) {
-      _currentTargetLanguage =
-          translatableLanguagesForPill.first; // Or more sophisticated selection
-      await _chatService.setTargetLanguage(_currentTargetLanguage.code);
-    }
-
-    if (state is ChatLoaded) {
-      emit((state as ChatLoaded).copyWith(
-        nativeLanguage: _nativeLanguage,
-        selectedLanguage:
-            _currentTargetLanguage, // selectedLanguage is the target language
-        translatableLanguagesForPill: translatableLanguagesForPill,
+        selectedLanguage: _currentTargetLanguage,
       ));
     }
     // If not ChatLoaded, the next MessagesReceived or initial load will pick up the changes.
+  }
+
+  Future<void> _onImageMessageSent(
+    ImageMessageSent event,
+    Emitter<ChatState> emit,
+  ) async {
+    print(
+        "[ChatBloc] _onImageMessageSent: Received imagePath: ${event.imagePath}, targetLang: ${event.targetLanguageCode}");
+    final initialChatLoadedState = state;
+    if (initialChatLoadedState is! ChatLoaded) {
+      emit(ChatError('Cannot process image if chat is not loaded.'));
+      return;
+    }
+    if (event.targetLanguageCode == null) {
+      // This should be prevented by UI if no language is selected.
+      emit(const ChatError(
+          'Target language not selected for OCR.')); // Added const
+      return;
+    }
+
+    // Optionally, show a temporary message or different typing indicator for image processing
+    // For now, we'll just use the existing isTyping.
+    emit(initialChatLoadedState.copyWith(isTyping: true));
+
+    try {
+      print(
+          "[ChatBloc] Calling _chatService.performOcrAndTranslate..."); // Debug print
+      // Perform OCR and get translation data (which includes extracted text)
+      final ocrTranslationData = await _chatService.performOcrAndTranslate(
+          event.imagePath, event.targetLanguageCode!); // Added null assertion
+
+      print("[ChatBloc] ocrTranslationData received: $ocrTranslationData");
+      // The Edge function should return 'extracted_text' and the usual translation fields
+      // for the *translated extracted text*.
+      final String? extractedText =
+          ocrTranslationData['extracted_text'] as String?;
+      print("[ChatBloc] Extracted text from OCR: $extractedText");
+      if (extractedText == null || extractedText.isEmpty) {
+        print("[ChatBloc] OCR failed: extractedText is null or empty.");
+        throw Exception(
+            'OCR failed to extract text from the image.'); // Debug print; Consider a more specific error type
+      }
+
+      // Save the message. The 'originalContent' will be the text extracted from the image.
+      // The 'translationData' will contain the translation of this extracted text.
+      print(
+          "[ChatBloc] Calling _chatService.saveMessage with extractedText: $extractedText"); // Debug print
+      await _chatService.saveMessage(
+        originalContent:
+            extractedText, // Text from OCR is the "original" for this message
+        translationData:
+            ocrTranslationData, // Contains translation of extractedText
+        targetLanguage: event.targetLanguageCode!, // Added null assertion
+      );
+      // The stream listener (_onMessagesReceived) will update the UI with the new message.
+      // The ChatLoaded state emitted by _onMessagesReceived will set isTyping to false.
+    } catch (e) {
+      print(
+          "[ChatBloc] Error in _onImageMessageSent: ${e.toString()}"); // Debug print
+      emit(ChatError('Failed to process image: ${e.toString()}'));
+      // Revert isTyping state on error
+      if (state is ChatLoaded) {
+        // Check current state again
+        emit((state as ChatLoaded).copyWith(isTyping: false));
+      } else {
+        // If state changed to something else (e.g. ChatError already), emit based on initial
+        emit(initialChatLoadedState.copyWith(isTyping: false));
+      }
+    }
   }
 
   Future<void> _onChatHistoryCleared(
     ChatHistoryCleared event,
     Emitter<ChatState> emit,
   ) async {
-    // Optionally, show a loading or processing state if deletion takes time
-    // if (state is ChatLoaded) {
-    //   emit((state as ChatLoaded).copyWith(messages: [])); // Optimistic update
-    // }
+    if (state is ChatLoaded) {
+      // Optimistically update the UI to show an empty list immediately.
+      // Keep the selectedLanguage from the current state.
+      emit((state as ChatLoaded).copyWith(messages: [], isTyping: false));
+    }
+
     try {
       await _chatService.clearChatHistory();
       // The message stream should automatically update to an empty list.
       // If not, you might need to explicitly emit ChatLoaded with empty messages.
+      // The optimistic update above should handle the immediate UI change.
+      // If the stream sends an update later, it will just confirm the empty state
+      // or show any new messages that might have arrived post-clear.
     } catch (e) {
       emit(ChatError('Failed to clear chat history: ${e.toString()}'));
+      // If clearing failed, you might want to revert to the previous state
+      // or fetch messages again, but for now, ChatError is emitted.
     }
   }
 

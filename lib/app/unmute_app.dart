@@ -17,6 +17,9 @@ import 'package:unmute/features/auth/presentation/pages/check_email_page.dart';
 import 'package:unmute/features/chat/presentation/pages/chat_page.dart';
 import 'package:unmute/features/chat/presentation/bloc/chat_bloc.dart';
 import 'package:unmute/features/chat/presentation/bloc/chat_event.dart';
+import 'package:unmute/features/chat/presentation/bloc/phrase_book_bloc.dart'; // Import PhraseBookBloc
+import 'package:unmute/features/chat/presentation/bloc/phrase_book_event.dart'; // Import PhraseBookEvent
+import 'package:unmute/features/chat/presentation/pages/phrase_book_page.dart'; // Import PhraseBookPage
 import 'package:unmute/features/chat/data/repositories/chat_service.dart';
 
 class UnmuteApp extends StatefulWidget {
@@ -29,6 +32,7 @@ class UnmuteApp extends StatefulWidget {
 class _UnmuteAppState extends State<UnmuteApp> {
   late final AuthBloc _authBloc;
   late final GoRouter _router;
+  late final PhraseBookBloc _phraseBookBloc; // Declare PhraseBookBloc
   late final GoRouterRefreshStream _authBlocRefreshStream;
 
   @override
@@ -44,6 +48,12 @@ class _UnmuteAppState extends State<UnmuteApp> {
 
     _authBlocRefreshStream = GoRouterRefreshStream(_authBloc.stream);
 
+    // Initialize PhraseBookBloc
+    final chatService =
+        ChatService(); // You might already have this instance or create a new one
+    _phraseBookBloc = PhraseBookBloc(chatService: chatService)
+      ..add(const LoadFavoritePhrases());
+
     _router = GoRouter(
       initialLocation: '/login', // Initial route
       refreshListenable: _authBlocRefreshStream,
@@ -55,17 +65,18 @@ class _UnmuteAppState extends State<UnmuteApp> {
         final isOnPublicRoute = publicRoutes.contains(state.matchedLocation);
 
         // Debugging prints (optional, can be removed after verification)
-        print(
+        debugPrint(// Changed print to debugPrint
             '[GoRouter Redirect] AuthState: $authState, Location: ${state.matchedLocation}, IsLoggedIn: $isLoggedIn, IsOnPublicRoute: $isOnPublicRoute');
 
         if (!isLoggedIn && !isOnPublicRoute) {
           // If not logged in and trying to access a protected route, redirect to login
-          print('[GoRouter Redirect] Not logged in, redirecting to /login');
+          debugPrint(
+              '[GoRouter Redirect] Not logged in, redirecting to /login'); // Changed print to debugPrint
           return '/login';
         }
         if (isLoggedIn && isOnPublicRoute) {
           // If logged in and on a public route (e.g., login page), redirect to chat
-          print(
+          debugPrint(// Changed print to debugPrint
               '[GoRouter Redirect] Logged in, on public page, redirecting to /chat');
           return '/chat';
         }
@@ -89,6 +100,7 @@ class _UnmuteAppState extends State<UnmuteApp> {
           path: '/chat',
           builder: (context, state) {
             return BlocProvider(
+              // Provide ChatBloc specifically for ChatPage
               create: (context) {
                 final chatService = ChatService();
                 return ChatBloc(
@@ -99,6 +111,10 @@ class _UnmuteAppState extends State<UnmuteApp> {
             );
           },
         ),
+        GoRoute(
+          path: '/phrase-book',
+          builder: (context, state) => const PhraseBookPage(),
+        ),
       ],
     );
   }
@@ -106,6 +122,7 @@ class _UnmuteAppState extends State<UnmuteApp> {
   @override
   void dispose() {
     _authBloc.close();
+    _phraseBookBloc.close(); // Dispose PhraseBookBloc
     _authBlocRefreshStream.dispose();
     // _router.dispose(); // GoRouter itself doesn't have a public dispose method.
     super.dispose();
@@ -116,6 +133,8 @@ class _UnmuteAppState extends State<UnmuteApp> {
     return MultiBlocProvider(
       providers: [
         BlocProvider<AuthBloc>.value(value: _authBloc),
+        BlocProvider<PhraseBookBloc>.value(
+            value: _phraseBookBloc), // Provide PhraseBookBloc
       ],
       child: MaterialApp.router(
         title: 'Unmute',

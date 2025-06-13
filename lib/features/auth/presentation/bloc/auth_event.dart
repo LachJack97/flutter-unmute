@@ -28,16 +28,14 @@ class AuthLoginRequested extends AuthEvent {
 class AuthRegisterRequested extends AuthEvent {
   final String email;
   final String password;
-  final String username;
 
   const AuthRegisterRequested({
     required this.email,
     required this.password,
-    required this.username,
   });
 
   @override
-  List<Object> get props => [email, password, username];
+  List<Object> get props => [email, password];
 }
 
 /// Event triggered when the user logs out.

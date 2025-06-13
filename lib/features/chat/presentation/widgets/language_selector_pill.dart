@@ -54,18 +54,14 @@ class LanguageSelectorPill extends StatelessWidget {
   ];
 
   // The currently selected language, provided by the parent widget.
-  final Language selectedLanguage;
-
-  // The list of languages to actually show in the dropdown, provided by the parent.
-  final List<Language> languagesToDisplayInPill;
+  final Language? selectedLanguage; // Now nullable
 
   // Callback to notify the parent when a new language is chosen.
   // It passes the entire Language object for maximum flexibility.
   final ValueChanged<Language> onLanguageSelected;
 
-  LanguageSelectorPill({
+  const LanguageSelectorPill({
     super.key,
-    required this.languagesToDisplayInPill,
     required this.selectedLanguage,
     required this.onLanguageSelected,
   });
@@ -89,9 +85,17 @@ class LanguageSelectorPill extends StatelessWidget {
         child: DropdownButton<Language>(
           value: selectedLanguage,
           isDense: true, // Reduces the button's height.
+          hint: const Text(
+            // Hint for when no language is selected
+            "Select Language",
+            style: TextStyle(
+                color: Colors.white70,
+                fontSize: 11,
+                fontWeight: FontWeight.normal),
+          ),
           icon: Icon(
             Icons.keyboard_arrow_down_rounded,
-            color: colorScheme.onSurface.withOpacity(0.6),
+            color: Colors.white, // White icon for better contrast
             size: 16, // Further reduced icon size
           ),
           dropdownColor: colorScheme.surface,
@@ -103,15 +107,15 @@ class LanguageSelectorPill extends StatelessWidget {
           },
           // How the currently selected item (the pill's content) is displayed.
           selectedItemBuilder: (context) {
-            return languagesToDisplayInPill.map<Widget>((language) {
+            return LanguageSelectorPill.availableLanguages
+                .map<Widget>((language) {
               // Use the passed list
               return Center(
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      language.displayName,
-                      textAlign: TextAlign.center,
+                      language.promptName, // Use full prompt name
                       style: TextStyle(
                         color: Colors.white, // Orange text color
                         fontWeight: FontWeight.bold,
@@ -124,7 +128,7 @@ class LanguageSelectorPill extends StatelessWidget {
             }).toList();
           },
           // How the items in the dropdown menu are displayed.
-          items: languagesToDisplayInPill
+          items: LanguageSelectorPill.availableLanguages
               .map<DropdownMenuItem<Language>>((language) {
             // Use the passed list
             return DropdownMenuItem<Language>(
@@ -136,7 +140,7 @@ class LanguageSelectorPill extends StatelessWidget {
                       MainAxisAlignment.center, // Center the row content
                   children: [
                     Text(
-                      language.displayName,
+                      language.promptName, // Use full prompt name
                       style: TextStyle(
                         color: colorScheme.onSurface,
                         fontWeight: FontWeight.w500,

@@ -1,5 +1,8 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:io'; // Required for File
+import 'dart:convert'; // Required for base64Encode
 import 'package:unmute/features/chat/domain/entities/message_entity.dart';
+import 'package:unmute/features/chat/domain/entities/favorite_phrase_entity.dart';
 
 /// A service class dedicated to handling all chat-related interactions
 /// with the Supabase backend for the client-orchestrated architecture.
@@ -43,45 +46,18 @@ class ChatService {
     return null;
   }
 
-  /// Stores the user's selected native language in their profile.
-  Future<void> setNativeLanguage(String languageCode) async {
-    final userId = _supabase.auth.currentUser?.id;
-    if (userId == null) return;
-
-    await _supabase
-        .from('profiles')
-        .update({'native_language': languageCode}).eq('id', userId);
-  }
-
-  /// Fetches the user's selected native language from their profile.
-  Future<String?> getNativeLanguage() async {
-    final userId = _supabase.auth.currentUser?.id;
-    if (userId == null) return null;
-
-    try {
-      final response = await _supabase
-          .from('profiles')
-          .select('native_language')
-          .eq('id', userId)
-          .single();
-
-      if (response.isNotEmpty && response['native_language'] != null) {
-        return response['native_language'] as String;
-      }
-    } catch (e) {
-      // It's okay if native_language is not set, might be a new user.
-      // Or if the column doesn't exist yet.
-      print('Info: Could not fetch native language or not set: $e');
-    }
-    return null;
-  }
-
   /// Subscribes to the real-time message stream from the 'messages' table.
   /// This listens for new messages being inserted or updated.
   Stream<List<MessageEntity>> getMessages() {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) {
+      // If no user is logged in, return an empty stream or handle error
+      return Stream.value([]);
+    }
     return _supabase
         .from('messages')
         .stream(primaryKey: ['id'])
+        .eq('sender_id', userId) // Filter messages by the current user's ID
         .order('created_at', ascending: true)
         .map((listOfMaps) {
           // Maps the raw database data into our clean MessageEntity objects.
@@ -129,9 +105,35 @@ class ChatService {
       String text, String targetLanguage) async {
     final response = await _supabase.functions.invoke(
       'translate-message',
-      body: {'text': text, 'target_language': targetLanguage},
+      body: {
+        'type': 'text', // Indicate this is a text request
+        'text': text,
+        'target_language': targetLanguage
+      },
+    );
+    return _handleFunctionResponse(response);
+  }
+
+  /// Calls the 'translate-message' Edge Function for OCR and translation.
+  Future<Map<String, dynamic>> performOcrAndTranslate(
+      String imagePath, String targetLanguage) async {
+    final bytes = await File(imagePath).readAsBytes();
+    final base64Image = base64Encode(bytes); // Encode image to Base64
+
+    final response = await _supabase.functions.invoke(
+      'translate-message', // Assuming the same Edge Function handles both
+      body: {
+        'type': 'image', // Indicate this is an image request
+        'image': base64Image,
+        'target_language': targetLanguage,
+      },
     );
 
+    return _handleFunctionResponse(response);
+  }
+
+  // Helper method to handle common response logic from Edge Functions
+  Map<String, dynamic> _handleFunctionResponse(FunctionResponse response) {
     if (response.status != 200) {
       // If the function returns an error, throw an exception with details.
       throw Exception(
@@ -177,5 +179,81 @@ class ChatService {
     } catch (e) {
       throw Exception('Failed to clear chat history from database: $e');
     }
+  }
+
+  // --- Favorite Phrases Methods ---
+
+  /// Adds a message to the user's favorite phrases.
+  Future<void> addFavoritePhrase({
+    required String originalContent,
+    required String translatedOutput,
+    required String targetLanguageCode,
+    String? romanisation,
+  }) async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) {
+      throw Exception('User not authenticated. Cannot add favorite.');
+    }
+
+    await _supabase.from('favorite_phrases').insert({
+      'user_id': userId,
+      'original_content': originalContent,
+      'translated_output': translatedOutput,
+      'target_language_code': targetLanguageCode,
+      'romanisation': romanisation,
+    });
+  }
+
+  /// Removes a phrase from the user's favorites by its ID.
+  Future<void> removeFavoritePhrase(String favoriteId) async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) {
+      throw Exception('User not authenticated. Cannot remove favorite.');
+    }
+    // Ensure user can only delete their own favorites
+    await _supabase
+        .from('favorite_phrases')
+        .delete()
+        .eq('id', favoriteId)
+        .eq('user_id', userId);
+  }
+
+  /// Gets a stream of the current user's favorite phrases.
+  Stream<List<FavoritePhraseEntity>> getFavoritePhrases() {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) {
+      return Stream.value([]);
+    }
+
+    return _supabase
+        .from('favorite_phrases')
+        .stream(primaryKey: ['id'])
+        .eq('user_id', userId)
+        .order('created_at', ascending: false) // Show newest first
+        .map((listOfMaps) {
+          return listOfMaps
+              .map((map) {
+                try {
+                  return FavoritePhraseEntity(
+                    id: map['id'],
+                    userId: map['user_id'],
+                    originalContent: map['original_content'],
+                    translatedOutput: map['translated_output'],
+                    targetLanguageCode: map['target_language_code'],
+                    romanisation: map['romanisation'],
+                    createdAt: DateTime.parse(map['created_at']),
+                  );
+                } catch (e) {
+                  print(
+                      "Error parsing favorite phrase data: ${map.toString()}. Error: $e");
+                  // In case of parsing error, you might want to filter it out or return a default
+                  // For now, rethrowing or filtering might be best.
+                  // This example will filter out malformed entries.
+                  return null;
+                }
+              })
+              .whereType<FavoritePhraseEntity>()
+              .toList(); // Filter out nulls from parsing errors
+        });
   }
 }

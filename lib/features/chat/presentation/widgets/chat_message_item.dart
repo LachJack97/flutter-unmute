@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:unmute/features/chat/domain/entities/message_entity.dart';
+import 'package:unmute/features/chat/presentation/bloc/phrase_book_bloc.dart';
+import 'package:unmute/features/chat/domain/entities/favorite_phrase_entity.dart'; // Import FavoritePhraseEntity
+import 'package:unmute/features/chat/presentation/bloc/phrase_book_event.dart';
+import 'package:unmute/features/chat/presentation/bloc/phrase_book_state.dart';
 import 'package:flutter/services.dart'; // Import for Clipboard
 
 /// A stateful widget to handle a single message exchange.
@@ -55,40 +60,88 @@ class _ChatMessageItemState extends State<ChatMessageItem> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment
-                          .center, // Align items vertically center
-                      children: [
-                        Expanded(
-                          child: Text(
-                            widget.message.output!,
-                            style: const TextStyle(
-                                fontSize: 16, color: Colors.black87),
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.copy,
-                              size: 16), // Made icon smaller
-                          color: Colors.black45, // Slightly lighter color
-                          padding: const EdgeInsets.only(
-                              left: 4.0), // Reduced left padding
-                          constraints: const BoxConstraints(
-                              minWidth: 24,
-                              minHeight: 24), // Smaller tap target
-                          splashRadius: 18, // Smaller splash radius
-                          tooltip: 'Copy translation',
-                          onPressed: () {
-                            Clipboard.setData(
-                                ClipboardData(text: widget.message.output!));
-                          },
-                        ),
-                      ],
+                    BlocBuilder<PhraseBookBloc, PhraseBookState>(
+                      builder: (context, phraseBookState) {
+                        bool isFavorite = false;
+                        String? favoriteId;
+
+                        if (phraseBookState is PhraseBookLoaded) {
+                          final favorite = phraseBookState.favoritePhrases
+                              .firstWhere(
+                                  (fav) =>
+                                      fav.translatedOutput ==
+                                          widget.message.output &&
+                                      fav.originalContent ==
+                                          widget.message.content &&
+                                      fav.targetLanguageCode ==
+                                          widget.message.targetLanguage,
+                                  orElse: () => FavoritePhraseEntity(
+                                      id: '',
+                                      userId: '',
+                                      originalContent: '',
+                                      translatedOutput: '',
+                                      targetLanguageCode: '',
+                                      createdAt: DateTime
+                                          .now()) // Dummy non-matching entity
+                                  );
+                          if (favorite.id.isNotEmpty) {
+                            isFavorite = true;
+                            favoriteId = favorite.id;
+                          }
+                        }
+
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                widget.message.output!,
+                                style: const TextStyle(
+                                    fontSize: 16, color: Colors.black87),
+                              ),
+                            ),
+                            IconButton(
+                              icon: Icon(
+                                isFavorite ? Icons.star : Icons.star_border,
+                                size: 20,
+                                color: isFavorite ? Colors.amber : Colors.grey,
+                              ),
+                              tooltip: isFavorite
+                                  ? 'Remove from favorites'
+                                  : 'Add to favorites',
+                              onPressed: () {
+                                if (isFavorite && favoriteId != null) {
+                                  context.read<PhraseBookBloc>().add(
+                                      RemovePhraseFromFavorites(
+                                          favoritePhraseId: favoriteId));
+                                } else {
+                                  context.read<PhraseBookBloc>().add(
+                                      AddPhraseToFavorites(
+                                          message: widget.message));
+                                }
+                              },
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.copy, size: 16),
+                              color: Colors.black45,
+                              padding: const EdgeInsets.only(left: 4.0),
+                              constraints: const BoxConstraints(
+                                  minWidth: 24, minHeight: 24),
+                              splashRadius: 18,
+                              tooltip: 'Copy translation',
+                              onPressed: () {
+                                Clipboard.setData(ClipboardData(
+                                    text: widget.message.output!));
+                              },
+                            ),
+                          ],
+                        );
+                      },
                     ),
                     if (widget.message.romanisation != null) ...[
                       const SizedBox(height: 4),
                       Row(
-                        crossAxisAlignment: CrossAxisAlignment
-                            .center, // Align items vertically center
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Expanded(
                             child: Text(

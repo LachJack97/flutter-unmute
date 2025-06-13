@@ -69,7 +69,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       await _signUpUser(
         email: event.email,
         password: event.password,
-      );
+      ); // <--- CORRECTED LINE HERE
       emit(const AuthError(
           message:
               'Success! Please check your email to confirm your account.'));

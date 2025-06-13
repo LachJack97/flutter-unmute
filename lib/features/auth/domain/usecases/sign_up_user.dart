@@ -9,6 +9,7 @@ class SignUpUser {
     required String email,
     required String password,
   }) async {
+    // Corrected: Added async and moved body start
     return await repository.signUp(
       email: email,
       password: password,

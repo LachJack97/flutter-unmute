@@ -16,13 +16,11 @@ class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _usernameController = TextEditingController();
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
-    _usernameController.dispose();
     super.dispose();
   }
 
@@ -32,7 +30,6 @@ class _RegisterPageState extends State<RegisterPage> {
             AuthRegisterRequested(
               email: _emailController.text.trim(),
               password: _passwordController.text.trim(),
-              username: _usernameController.text.trim(),
             ),
           );
     }
@@ -70,14 +67,6 @@ class _RegisterPageState extends State<RegisterPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    TextFormField(
-                      controller: _usernameController,
-                      decoration: const InputDecoration(labelText: 'Username'),
-                      validator: (value) => (value?.isEmpty ?? true)
-                          ? 'Please enter a username'
-                          : null,
-                    ),
-                    const SizedBox(height: 16),
                     TextFormField(
                       controller: _emailController,
                       decoration: const InputDecoration(labelText: 'Email'),

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:unmute/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:flutter/foundation.dart'; // Import for listEquals
-import 'package:unmute/features/auth/presentation/bloc/auth_event.dart';
+import 'package:image_picker/image_picker.dart'; // Import image_picker
+import 'package:go_router/go_router.dart'; // Import GoRouter for navigation
 import 'package:unmute/features/chat/presentation/bloc/chat_bloc.dart';
 import 'package:unmute/features/chat/presentation/bloc/chat_event.dart';
 import 'package:unmute/features/chat/presentation/bloc/chat_state.dart';
@@ -65,6 +65,87 @@ class _ChatPageState extends State<ChatPage> {
     context.read<ChatBloc>().add(LanguageChanged(newLanguage));
   }
 
+  Future<void> _pickImageForOCR() async {
+    final ImagePicker picker = ImagePicker();
+    XFile? imageFile;
+
+    // Show a dialog to choose the source
+    final source = await showModalBottomSheet<ImageSource>(
+        context: context,
+        builder: (BuildContext context) {
+          return SafeArea(
+            child: Wrap(
+              children: <Widget>[
+                ListTile(
+                    leading: const Icon(Icons.photo_library),
+                    title: const Text('Photo Library'),
+                    onTap: () {
+                      Navigator.pop(context, ImageSource.gallery);
+                    }),
+                ListTile(
+                  leading: const Icon(Icons.photo_camera),
+                  title: const Text('Camera'),
+                  onTap: () {
+                    Navigator.pop(context, ImageSource.camera);
+                  },
+                ),
+              ],
+            ),
+          );
+        });
+
+    if (source == null) return; // User dismissed the modal
+
+    try {
+      imageFile = await picker.pickImage(source: source);
+    } catch (e) {
+      debugPrint("Error picking image: $e");
+      // Optionally, show a SnackBar to the user
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(
+                'Error picking image: ${e.toString().replaceFirst("Exception: ", "")}')),
+      );
+    }
+
+    if (imageFile != null) {
+      // For production, consider a logging framework.
+      debugPrint("[ChatPage] Image picked: ${imageFile.path}");
+      // Get the current target language from the Bloc state
+      final currentState = context.read<ChatBloc>().state;
+      String? targetLanguageCode; // Now nullable
+
+      if (currentState is ChatLoaded) {
+        targetLanguageCode = currentState.selectedLanguage?.code;
+      }
+
+      if (targetLanguageCode == null) {
+        if (!mounted) {
+          return;
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Please select a target language first.')),
+        );
+        return;
+      }
+      debugPrint(
+          "[ChatPage] Dispatching ImageMessageSent with path: ${imageFile.path}, target: $targetLanguageCode");
+
+      // Dispatch the event to the ChatBloc
+      if (!mounted) {
+        return;
+      }
+      context.read<ChatBloc>().add(ImageMessageSent(
+            imagePath: imageFile.path,
+            targetLanguageCode: targetLanguageCode,
+          ));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -84,6 +165,8 @@ class _ChatPageState extends State<ChatPage> {
             } else if (value == 'clear_chat') {
               // Dispatch event to clear chat history
               context.read<ChatBloc>().add(const ChatHistoryCleared());
+            } else if (value == 'phrase_book') {
+              context.go('/phrase-book');
             }
           },
           itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
@@ -103,21 +186,11 @@ class _ChatPageState extends State<ChatPage> {
               ),
             ),
             const PopupMenuDivider(),
-            PopupMenuItem(
-              value:
-                  'set_native_language', // This value won't be directly used for action
-              child: SubmenuButton(
-                menuChildren:
-                    LanguageSelectorPill.availableLanguages.map((lang) {
-                  return MenuItemButton(
-                    child: Text(lang.promptName), // Show full name for clarity
-                    onPressed: () {
-                      context.read<ChatBloc>().add(NativeLanguageSet(lang));
-                      Navigator.pop(context); // Close the main popup menu
-                    },
-                  );
-                }).toList(),
-                child: const Text('Set Native Language'),
+            const PopupMenuItem<String>(
+              value: 'phrase_book',
+              child: ListTile(
+                leading: Icon(Icons.book_outlined),
+                title: Text('Phrase Book'),
               ),
             ),
             // You can add more items here like 'Profile', 'Settings', etc.
@@ -134,25 +207,19 @@ class _ChatPageState extends State<ChatPage> {
         actions: [
           BlocBuilder<ChatBloc, ChatState>(
             buildWhen: (previous, current) =>
-                previous is! ChatLoaded ||
-                current is! ChatLoaded ||
-                (previous as ChatLoaded).selectedLanguage !=
-                    (current as ChatLoaded).selectedLanguage ||
-                !listEquals(
-                    (previous as ChatLoaded).translatableLanguagesForPill,
-                    (current as ChatLoaded).translatableLanguagesForPill),
+                // Rebuild only if both are ChatLoaded and selectedLanguage differs,
+                // or if one of them is not ChatLoaded (e.g., transitioning from ChatLoading to ChatLoaded)
+                (previous is ChatLoaded && current is ChatLoaded)
+                    ? previous.selectedLanguage != current.selectedLanguage
+                    : true, // Rebuild if states are of different types or not ChatLoaded
+
             builder: (context, state) {
-              Language currentSelectedLanguage =
-                  LanguageSelectorPill.defaultLanguage;
-              List<Language> languagesForPill = [
-                LanguageSelectorPill.defaultLanguage
-              ]; // Fallback
+              Language? currentSelectedLanguage; // Now nullable
               if (state is ChatLoaded) {
                 currentSelectedLanguage = state.selectedLanguage;
-                languagesForPill = state.translatableLanguagesForPill;
               }
               return LanguageSelectorPill(
-                languagesToDisplayInPill: languagesForPill,
+                // The pill will now use its own static list of all available languages
                 selectedLanguage: currentSelectedLanguage,
                 onLanguageSelected: _onLanguageSelected,
               );
@@ -210,6 +277,7 @@ class _ChatPageState extends State<ChatPage> {
           ChatInputBar(
             controller: _messageController,
             onSend: _sendMessage,
+            onImagePick: _pickImageForOCR, // Pass the new callback
           ),
         ],
       ),

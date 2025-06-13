@@ -6,7 +6,7 @@ abstract class ChatEvent extends Equatable {
   const ChatEvent(); // Constructor for base class
 
   @override
-  List<Object> get props => []; // Equatable requires props
+  List<Object?> get props => []; // Equatable requires props
 }
 
 class SubscriptionRequested extends ChatEvent {
@@ -41,10 +41,13 @@ class ChatHistoryCleared extends ChatEvent {
   const ChatHistoryCleared();
 }
 
-class NativeLanguageSet extends ChatEvent {
-  final Language language;
-  const NativeLanguageSet(this.language);
+class ImageMessageSent extends ChatEvent {
+  final String imagePath;
+  final String? targetLanguageCode; // Now nullable
+
+  const ImageMessageSent(
+      {required this.imagePath, required this.targetLanguageCode});
 
   @override
-  List<Object> get props => [language];
+  List<Object?> get props => [imagePath, targetLanguageCode];
 }

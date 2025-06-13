@@ -20,18 +20,12 @@ class ChatLoading extends ChatState {
 class ChatLoaded extends ChatState {
   final List<MessageEntity> messages;
   final bool isTyping;
-  final Language
-      selectedLanguage; // This is the target language for translation
-  final Language? nativeLanguage;
-  final List<Language>
-      translatableLanguagesForPill; // Languages for the pill, excluding native
+  final Language? selectedLanguage; // Now nullable
 
   const ChatLoaded({
     required this.messages,
     this.isTyping = false,
     required this.selectedLanguage,
-    this.nativeLanguage,
-    required this.translatableLanguagesForPill,
   });
 
   @override
@@ -39,26 +33,17 @@ class ChatLoaded extends ChatState {
         messages,
         isTyping,
         selectedLanguage,
-        nativeLanguage,
-        translatableLanguagesForPill
       ];
 
   ChatLoaded copyWith({
     List<MessageEntity>? messages,
     bool? isTyping,
-    Language? selectedLanguage,
-    // For nullable fields in copyWith, you might need a way to explicitly set to null.
-    // For simplicity, if nativeLanguage is passed, it's used. If not, existing is kept.
-    Language? nativeLanguage,
-    List<Language>? translatableLanguagesForPill,
+    Language? selectedLanguage, // Allow setting to null via copyWith
   }) {
     return ChatLoaded(
       messages: messages ?? this.messages,
       isTyping: isTyping ?? this.isTyping,
       selectedLanguage: selectedLanguage ?? this.selectedLanguage,
-      nativeLanguage: nativeLanguage ?? this.nativeLanguage,
-      translatableLanguagesForPill:
-          translatableLanguagesForPill ?? this.translatableLanguagesForPill,
     );
   }
 }
