@@ -13,6 +13,7 @@ class MessageEntity extends Equatable {
   final String? romanisation;
   final String? detectedLanguageCode; // Add this field
   // --- THIS IS THE PERMANENT FIX ---
+  final String? imageUrl; // To store the URL of the sent image
   // Change this field from Map? to a List of Maps?
   final List<Map<String, dynamic>>? breakdown;
 
@@ -25,6 +26,7 @@ class MessageEntity extends Equatable {
     this.targetLanguage,
     this.romanisation,
     this.detectedLanguageCode, // Add this to the constructor
+    this.imageUrl,
     this.breakdown,
   });
 
@@ -38,6 +40,7 @@ class MessageEntity extends Equatable {
         targetLanguage,
         romanisation,
         detectedLanguageCode, // Add this to props
+        imageUrl,
         breakdown,
       ];
 }

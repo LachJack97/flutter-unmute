@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:unmute/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:image_picker/image_picker.dart'; // Import image_picker
+import 'dart:typed_data'; // Import for Uint8List
 import 'package:go_router/go_router.dart'; // Import GoRouter for navigation
 import 'package:unmute/features/chat/presentation/bloc/chat_bloc.dart';
 import 'package:unmute/features/chat/presentation/bloc/chat_event.dart';
@@ -113,13 +114,15 @@ class _ChatPageState extends State<ChatPage> {
 
     if (imageFile != null) {
       // For production, consider a logging framework.
-      debugPrint("[ChatPage] Image picked: ${imageFile.path}");
+      debugPrint("[ChatPage] Image picked, attempting to read bytes...");
       // Get the current target language from the Bloc state
       final currentState = context.read<ChatBloc>().state;
       String? targetLanguageCode; // Now nullable
 
       if (currentState is ChatLoaded) {
         targetLanguageCode = currentState.selectedLanguage?.code;
+        debugPrint(
+            "[ChatPage] Target language from ChatLoaded: $targetLanguageCode");
       }
 
       if (targetLanguageCode == null) {
@@ -132,15 +135,20 @@ class _ChatPageState extends State<ChatPage> {
         );
         return;
       }
+
+      // Read bytes from the image file
+      final Uint8List imageBytes = await imageFile.readAsBytes();
+      debugPrint("[ChatPage] Image bytes read, length: ${imageBytes.length}");
+
       debugPrint(
-          "[ChatPage] Dispatching ImageMessageSent with path: ${imageFile.path}, target: $targetLanguageCode");
+          "[ChatPage] Dispatching ImageMessageSent with image bytes, target: $targetLanguageCode");
 
       // Dispatch the event to the ChatBloc
       if (!mounted) {
         return;
       }
       context.read<ChatBloc>().add(ImageMessageSent(
-            imagePath: imageFile.path,
+            imageBytes: imageBytes, // Pass the image bytes
             targetLanguageCode: targetLanguageCode,
           ));
     }

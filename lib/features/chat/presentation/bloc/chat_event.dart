@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:unmute/features/chat/domain/entities/message_entity.dart'; // Ensure this path is correct
+import 'dart:typed_data'; // Import for Uint8List
 import 'package:unmute/features/chat/presentation/widgets/language_selector_pill.dart'; // Import Language
 
 abstract class ChatEvent extends Equatable {
@@ -42,12 +43,12 @@ class ChatHistoryCleared extends ChatEvent {
 }
 
 class ImageMessageSent extends ChatEvent {
-  final String imagePath;
+  final Uint8List imageBytes; // Changed from imagePath to imageBytes
   final String? targetLanguageCode; // Now nullable
 
   const ImageMessageSent(
-      {required this.imagePath, required this.targetLanguageCode});
+      {required this.imageBytes, required this.targetLanguageCode});
 
   @override
-  List<Object?> get props => [imagePath, targetLanguageCode];
+  List<Object?> get props => [imageBytes, targetLanguageCode];
 }

@@ -21,6 +21,20 @@ class ChatMessageItem extends StatefulWidget {
 class _ChatMessageItemState extends State<ChatMessageItem> {
   bool _isExpanded = false;
 
+  // Define a set of language codes for which romanization is generally useful.
+  // These are typically languages not using a Latin-based script.
+  static const Set<String> _languagesBenefitingFromRomanisation = {
+    'ja', // Japanese
+    'ko', // Korean
+    'zh', // Chinese (covers variants like zh-CN, zh-TW)
+    'ar', // Arabic
+    'hi', // Hindi
+    'ru', // Russian
+    'el', // Greek
+    'th', // Thai
+    'he', // Hebrew
+  };
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -138,7 +152,12 @@ class _ChatMessageItemState extends State<ChatMessageItem> {
                         );
                       },
                     ),
-                    if (widget.message.romanisation != null) ...[
+                    // Conditionally display romanization
+                    if (widget.message.romanisation != null &&
+                        widget.message.romanisation!.isNotEmpty &&
+                        widget.message.targetLanguage != null &&
+                        _languagesBenefitingFromRomanisation
+                            .contains(widget.message.targetLanguage!)) ...[
                       const SizedBox(height: 4),
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.center,

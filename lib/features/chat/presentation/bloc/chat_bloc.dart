@@ -172,7 +172,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     Emitter<ChatState> emit,
   ) async {
     print(
-        "[ChatBloc] _onImageMessageSent: Received imagePath: ${event.imagePath}, targetLang: ${event.targetLanguageCode}");
+        "[ChatBloc] _onImageMessageSent: Received imageBytes (length: ${event.imageBytes.length}), targetLang: ${event.targetLanguageCode}");
     final initialChatLoadedState = state;
     if (initialChatLoadedState is! ChatLoaded) {
       emit(ChatError('Cannot process image if chat is not loaded.'));
@@ -194,7 +194,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
           "[ChatBloc] Calling _chatService.performOcrAndTranslate..."); // Debug print
       // Perform OCR and get translation data (which includes extracted text)
       final ocrTranslationData = await _chatService.performOcrAndTranslate(
-          event.imagePath, event.targetLanguageCode!); // Added null assertion
+          event.imageBytes, event.targetLanguageCode!);
 
       print("[ChatBloc] ocrTranslationData received: $ocrTranslationData");
       // The Edge function should return 'extracted_text' and the usual translation fields
