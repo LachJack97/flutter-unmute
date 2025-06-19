@@ -17,12 +17,12 @@ class PhraseBookLoading extends PhraseBookState {
 }
 
 class PhraseBookLoaded extends PhraseBookState {
-  final List<FavoritePhraseEntity> favoritePhrases;
+  final Map<String, List<FavoritePhraseEntity>> groupedPhrases;
 
-  const PhraseBookLoaded({required this.favoritePhrases});
+  const PhraseBookLoaded({required this.groupedPhrases});
 
   @override
-  List<Object?> get props => [favoritePhrases];
+  List<Object> get props => [groupedPhrases];
 }
 
 class PhraseBookError extends PhraseBookState {

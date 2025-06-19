@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 
 class FavoritePhraseEntity extends Equatable {
   final String id;
+  final String language;
   final String userId;
   final String originalContent;
   final String translatedOutput;
@@ -11,6 +12,7 @@ class FavoritePhraseEntity extends Equatable {
 
   const FavoritePhraseEntity({
     required this.id,
+    required this.language,
     required this.userId,
     required this.originalContent,
     required this.translatedOutput,
@@ -22,6 +24,7 @@ class FavoritePhraseEntity extends Equatable {
   @override
   List<Object?> get props => [
         id,
+        language,
         userId,
         originalContent,
         translatedOutput,

@@ -271,6 +271,7 @@ class ChatService {
                 try {
                   return FavoritePhraseEntity(
                     id: map['id'],
+                    language: map['language'],
                     userId: map['user_id'],
                     originalContent: map['original_content'],
                     translatedOutput: map['translated_output'],

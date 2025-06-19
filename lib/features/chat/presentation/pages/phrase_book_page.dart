@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:unmute/features/chat/domain/entities/favorite_phrase_entity.dart';
 import 'package:unmute/features/chat/presentation/bloc/phrase_book_bloc.dart';
+import 'package:unmute/features/chat/presentation/bloc/phrase_book_event.dart';
 import 'package:unmute/features/chat/presentation/bloc/phrase_book_state.dart';
-import 'package:unmute/features/chat/presentation/widgets/language_selector_pill.dart'; 
-import 'package:unmute/features/chat/presentation/widgets/phrase_card_item.dart'; 
-import 'package:collection/collection.dart'; 
+import 'package:unmute/features/chat/presentation/widgets/phrase_card_item.dart';
 
 class PhraseBookPage extends StatefulWidget {
   const PhraseBookPage({super.key});
@@ -22,47 +20,42 @@ class _PhraseBookPageState extends State<PhraseBookPage> {
   @override
   void initState() {
     super.initState();
+    // Load the phrases when the page is first initialized
+    context.read<PhraseBookBloc>().add(const LoadFavoritePhrases());
     _searchController.addListener(() {
-      setState(() {
-        _searchQuery = _searchController.text.toLowerCase();
-      });
+      if (mounted) {
+        setState(() {
+          _searchQuery = _searchController.text.toLowerCase();
+        });
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/chat'), // Navigate back to chat
+          onPressed: () => context.go('/chat'),
         ),
         title: const Text('Phrase Book'),
         elevation: 0,
-        iconTheme:
-            IconThemeData(color: Theme.of(context).colorScheme.onSurface),
-        titleTextStyle: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface,
-            fontSize: 20,
-            fontWeight: FontWeight.w500),
       ),
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: TextFormField(
               controller: _searchController,
               decoration: InputDecoration(
                 hintText: 'Search phrases...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(25.0),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: Colors.grey[100],
-                contentPadding:
-                    const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                prefixIcon:
+                    Icon(Icons.search, color: theme.colorScheme.onSurfaceVariant),
+                // Use theme color for the search bar fill
+                fillColor: theme.colorScheme.surface,
               ),
             ),
           ),
@@ -71,117 +64,88 @@ class _PhraseBookPageState extends State<PhraseBookPage> {
               builder: (context, state) {
                 if (state is PhraseBookLoading) {
                   return const Center(child: CircularProgressIndicator());
+                } else if (state is PhraseBookError) {
+                  return Center(child: Text('Error: ${state.message}'));
                 } else if (state is PhraseBookLoaded) {
-                  if (state.favoritePhrases.isEmpty) {
-                    return const Center(
+                  // Filter the grouped phrases based on the search query
+                  final filteredGroupedPhrases =
+                      state.groupedPhrases.map((language, phrases) {
+                    final filteredPhrases = phrases.where((phrase) {
+                      return phrase.originalContent
+                              .toLowerCase()
+                              .contains(_searchQuery) ||
+                          phrase.translatedOutput
+                              .toLowerCase()
+                              .contains(_searchQuery) ||
+                          (phrase.romanisation
+                                  ?.toLowerCase()
+                                  .contains(_searchQuery) ??
+                              false);
+                    }).toList();
+                    return MapEntry(language, filteredPhrases);
+                  })
+                    ..removeWhere((language, phrases) => phrases.isEmpty);
+
+                  final languages = filteredGroupedPhrases.keys.toList();
+
+                  if (languages.isEmpty) {
+                    return Center(
                       child: Padding(
-                        padding: EdgeInsets.all(16.0),
+                        padding: const EdgeInsets.all(16.0),
                         child: Text(
-                            'Your phrase book is empty. Add some favorites from the chat!',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 16, color: Colors.grey)),
+                          _searchQuery.isNotEmpty
+                              ? 'No phrases match your search.'
+                              : 'Your phrase book is empty. Add some favorites from the chat!',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              fontSize: 16,
+                              color: theme.colorScheme.onSurfaceVariant),
+                        ),
                       ),
                     );
                   }
 
-                  // Filter phrases based on search query
-                  final filteredPhrases = state.favoritePhrases.where((phrase) {
-                    final query = _searchQuery.toLowerCase();
-                    return phrase.translatedOutput
-                            .toLowerCase()
-                            .contains(query) ||
-                        phrase.originalContent.toLowerCase().contains(query) ||
-                        (phrase.romanisation?.toLowerCase().contains(query) ??
-                            false);
-                  }).toList();
+                  // Build the UI with ExpansionTile
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(8),
+                    itemCount: languages.length,
+                    itemBuilder: (context, index) {
+                      final language = languages[index];
+                      final phrasesForLanguage =
+                          filteredGroupedPhrases[language]!;
 
-                  if (filteredPhrases.isEmpty && _searchQuery.isNotEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: Center(
-                          child: Text('No phrases match your search.',
-                              textAlign: TextAlign.center,
-                              style:
-                                  TextStyle(fontSize: 16, color: Colors.grey))),
-                    );
-                  }
-                  if (filteredPhrases.isEmpty && _searchQuery.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: Center(
-                          child: Text(
-                              'Your phrase book is empty. Add some favorites from the chat!',
-                              textAlign: TextAlign.center,
-                              style:
-                                  TextStyle(fontSize: 16, color: Colors.grey))),
-                    );
-                  }
-
-                  // Group filtered phrases by language
-                  final Map<String, List<FavoritePhraseEntity>> groupedPhrases =
-                      {};
-                  for (var phrase in filteredPhrases) {
-                    groupedPhrases
-                        .putIfAbsent(phrase.targetLanguageCode, () => [])
-                        .add(phrase);
-                  }
-
-                  final languageGroups = groupedPhrases.entries.toList();
-
-                  return ListView.separated(
-                    padding: const EdgeInsets.all(16.0),
-                    itemCount: languageGroups.length,
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(height: 20),
-                    itemBuilder: (context, groupIndex) {
-                      final languageCode = languageGroups[groupIndex].key;
-                      final phrasesInGroup = languageGroups[groupIndex].value;
-                      final Language? langObject = LanguageSelectorPill
-                          .availableLanguages
-                          .firstWhereOrNull(
-                              (lang) => lang.code == languageCode);
-                      final String displayLanguageName =
-                          langObject?.promptName ?? languageCode.toUpperCase();
-
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '$displayLanguageName Phrases (${phrasesInGroup.length})',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.orange,
-                            ),
-                          ),
-                          const SizedBox(
-                              height: 12.0), // Spacing after the title
-                          ListView.separated(
-                            physics:
-                                const NeverScrollableScrollPhysics(), // Important for nested lists
-                            shrinkWrap: true, // Important for nested lists
-                            itemCount: phrasesInGroup.length,
-                            separatorBuilder: (context, index) =>
-                                const SizedBox(height: 12),
-                            itemBuilder: (context, phraseIndex) {
-                              final phrase = phrasesInGroup[phraseIndex];
-                              return PhraseCardItem(phrase: phrase);
-                            },
-                          ),
-                        ],
+                      return ExpansionTile(
+                        title: Text(
+                          language,
+                          style: theme.textTheme.titleLarge
+                              ?.copyWith(color: theme.colorScheme.primary),
+                        ),
+                        subtitle: Text('${phrasesForLanguage.length} phrases'),
+                        initiallyExpanded: true, // Keep books open by default
+                        childrenPadding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        children: phrasesForLanguage
+                            .map((phrase) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 8.0),
+                                  child: PhraseCardItem(phrase: phrase),
+                                ))
+                            .toList(),
                       );
                     },
                   );
-                } else if (state is PhraseBookError) {
-                  return Center(child: Text('Error: ${state.message}'));
                 }
-                return const Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Center(
-                      child: Text(
-                          'Tap the star on messages in the chat to save them here.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 16, color: Colors.grey))),
+                // Default/Initial state
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(
+                      'Tap the star on messages in the chat to save them here.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          fontSize: 16,
+                          color: theme.colorScheme.onSurfaceVariant),
+                    ),
+                  ),
                 );
               },
             ),

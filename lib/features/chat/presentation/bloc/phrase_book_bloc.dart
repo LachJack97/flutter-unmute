@@ -31,38 +31,30 @@ class PhraseBookBloc extends Bloc<PhraseBookEvent, PhraseBookState> {
   }
 
   void _onFavoritePhrasesUpdated(
-    _FavoritePhrasesUpdated event,
-    Emitter<PhraseBookState> emit,
-  ) {
-    emit(PhraseBookLoaded(favoritePhrases: event.phrases));
+  _FavoritePhrasesUpdated event,
+  Emitter<PhraseBookState> emit,
+) {
+  final grouped = <String, List<FavoritePhraseEntity>>{};
+  for (final phrase in event.phrases) {
+    // CORRECTED: Use the existing field name from your entity
+    (grouped[phrase.targetLanguageCode] ??= []).add(phrase);
   }
-
+  emit(PhraseBookLoaded(groupedPhrases: grouped));
+}
   Future<void> _onAddPhraseToFavorites(
     AddPhraseToFavorites event,
     Emitter<PhraseBookState> emit,
   ) async {
     try {
-      // Ensure there's something to save as translatedOutput
       if (event.message.output == null || event.message.output!.isEmpty) {
-        // Optionally emit an error or handle silently
-        print("Cannot add to favorites: translated output is missing.");
         return;
       }
       await _chatService.addFavoritePhrase(
         originalContent: event.message.content,
         translatedOutput: event.message.output!,
-        targetLanguageCode:
-            event.message.targetLanguage ?? 'unknown', // Provide a fallback
+        targetLanguageCode: event.message.targetLanguage ?? 'unknown',
         romanisation: event.message.romanisation,
       );
-      // Optimistically update the state if currently loaded
-      if (state is PhraseBookLoaded) {
-        // To properly update, we'd ideally get the newly created FavoritePhraseEntity
-        // back from addFavoritePhrase or simulate it. For simplicity, we'll re-trigger a load
-        // which will pick up the new item via the stream.
-        // A more advanced optimistic update would construct the FavoritePhraseEntity locally.
-        add(const LoadFavoritePhrases()); // Re-fetch to ensure UI updates
-      }
     } catch (e) {
       emit(PhraseBookError(message: "Failed to add favorite: ${e.toString()}"));
     }
@@ -72,16 +64,10 @@ class PhraseBookBloc extends Bloc<PhraseBookEvent, PhraseBookState> {
     RemovePhraseFromFavorites event,
     Emitter<PhraseBookState> emit,
   ) async {
-    final currentState = state;
     try {
       await _chatService.removeFavoritePhrase(event.favoritePhraseId);
-      // Optimistically update the state if currently loaded
-      if (currentState is PhraseBookLoaded) {
-        final updatedList = currentState.favoritePhrases
-            .where((phrase) => phrase.id != event.favoritePhraseId)
-            .toList();
-        emit(PhraseBookLoaded(favoritePhrases: updatedList));
-      }
+
+      add(const LoadFavoritePhrases());
     } catch (e) {
       emit(PhraseBookError(
           message: "Failed to remove favorite: ${e.toString()}"));
