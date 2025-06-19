@@ -98,23 +98,26 @@ class _ChatPageState extends State<ChatPage> {
     if (source == null) return; // User dismissed the modal
 
     try {
-      imageFile = await picker.pickImage(source: source);
+      imageFile = await picker.pickImage(source: source, imageQuality: 80); // Optionally, add imageQuality
     } catch (e) {
       debugPrint("Error picking image: $e");
       // Optionally, show a SnackBar to the user
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
             content: Text(
                 'Error picking image: ${e.toString().replaceFirst("Exception: ", "")}')),
       );
+      return; // Return after showing error if image picking failed
     }
 
     if (imageFile != null) {
       // For production, consider a logging framework.
       debugPrint("[ChatPage] Image picked, attempting to read bytes...");
+      // Ensure the widget is still mounted before accessing context.
+      if (!mounted) return;
+
+
       // Get the current target language from the Bloc state
       final currentState = context.read<ChatBloc>().state;
       String? targetLanguageCode; // Now nullable
@@ -126,9 +129,7 @@ class _ChatPageState extends State<ChatPage> {
       }
 
       if (targetLanguageCode == null) {
-        if (!mounted) {
-          return;
-        }
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
               content: Text('Please select a target language first.')),
@@ -136,19 +137,13 @@ class _ChatPageState extends State<ChatPage> {
         return;
       }
 
-      // Read bytes from the image file
-      final Uint8List imageBytes = await imageFile.readAsBytes();
-      debugPrint("[ChatPage] Image bytes read, length: ${imageBytes.length}");
-
       debugPrint(
-          "[ChatPage] Dispatching ImageMessageSent with image bytes, target: $targetLanguageCode");
+          "[ChatPage] Dispatching ImageMessageSent with imageFile path: ${imageFile.path}, target: $targetLanguageCode");
 
       // Dispatch the event to the ChatBloc
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       context.read<ChatBloc>().add(ImageMessageSent(
-            imageBytes: imageBytes, // Pass the image bytes
+            imageFile: imageFile, // Pass the XFile object
             targetLanguageCode: targetLanguageCode,
           ));
     }
@@ -157,11 +152,9 @@ class _ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // Set the background color to white
+      // backgroundColor will be inherited from the theme
       appBar: AppBar(
-        elevation: 0, // Removes shadow for a flatter, modern look
-        backgroundColor: Colors.white, // Explicitly set to white
-        scrolledUnderElevation: 0, // Ensures no elevation change on scroll
+        scrolledUnderElevation: 0, // Keep this specific behavior, other properties from theme
         leading: PopupMenuButton<String>(
           icon: Icon(
             Icons.account_circle,

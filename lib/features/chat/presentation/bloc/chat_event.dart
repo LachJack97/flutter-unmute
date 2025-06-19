@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:unmute/features/chat/domain/entities/message_entity.dart'; // Ensure this path is correct
-import 'dart:typed_data'; // Import for Uint8List
+import 'package:image_picker/image_picker.dart'; // Import for XFile
 import 'package:unmute/features/chat/presentation/widgets/language_selector_pill.dart'; // Import Language
 
 abstract class ChatEvent extends Equatable {
@@ -43,12 +43,23 @@ class ChatHistoryCleared extends ChatEvent {
 }
 
 class ImageMessageSent extends ChatEvent {
-  final Uint8List imageBytes; // Changed from imagePath to imageBytes
+  final XFile imageFile; // Changed from Uint8List to XFile
   final String? targetLanguageCode; // Now nullable
 
-  const ImageMessageSent(
-      {required this.imageBytes, required this.targetLanguageCode});
+  const ImageMessageSent({
+    required this.imageFile,
+    required this.targetLanguageCode,
+  });
 
   @override
-  List<Object?> get props => [imageBytes, targetLanguageCode];
+  List<Object?> get props => [imageFile, targetLanguageCode];
+}
+
+/// Event triggered when an error occurs on the chat message stream.
+class ChatStreamErrorOccurred extends ChatEvent {
+  final String errorMessage;
+  const ChatStreamErrorOccurred(this.errorMessage);
+
+  @override
+  List<Object?> get props => [errorMessage];
 }

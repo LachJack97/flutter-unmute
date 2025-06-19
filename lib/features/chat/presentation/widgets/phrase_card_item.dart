@@ -15,10 +15,8 @@ class PhraseCardItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 2.0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.0),
-      ),
+      // Elevation and shape will be handled by CardTheme
+      // color will also be handled by CardTheme (which we set to darkThemeBackground)
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -27,13 +25,15 @@ class PhraseCardItem extends StatelessWidget {
             Text(
               // Original content first
               'Original: ${phrase.originalContent}',
-              style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 6),
             Text(
               // Translated output second
               phrase.translatedOutput,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface),
             ),
             if (phrase.romanisation != null &&
                 phrase.romanisation!.isNotEmpty) ...[
@@ -41,16 +41,16 @@ class PhraseCardItem extends StatelessWidget {
               Text(
                 // Romanisation third
                 'Romanisation: ${phrase.romanisation}',
-                style: TextStyle(
-                    fontSize: 14,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     fontStyle: FontStyle.italic,
-                    color: Colors.grey[700]),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
             ],
             Align(
               alignment: Alignment.centerRight,
               child: IconButton(
-                icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                icon: Icon(Icons.delete_outline,
+                    color: Theme.of(context).colorScheme.error),
                 tooltip: 'Remove from favorites',
                 onPressed: () {
                   context.read<PhraseBookBloc>().add(

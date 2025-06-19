@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:unmute/features/chat/domain/entities/favorite_phrase_entity.dart';
 import 'package:unmute/features/chat/presentation/bloc/phrase_book_bloc.dart';
-import 'package:unmute/features/chat/presentation/bloc/phrase_book_event.dart';
 import 'package:unmute/features/chat/presentation/bloc/phrase_book_state.dart';
 import 'package:unmute/features/chat/presentation/widgets/language_selector_pill.dart'; // For Language class
 import 'package:unmute/features/chat/presentation/widgets/phrase_card_item.dart'; // Import the PhraseCardItem

@@ -93,7 +93,7 @@ class LanguageSelectorPill extends StatelessWidget {
                 fontSize: 11,
                 fontWeight: FontWeight.normal),
           ),
-          icon: Icon(
+          icon: const Icon(
             Icons.keyboard_arrow_down_rounded,
             color: Colors.white, // White icon for better contrast
             size: 16, // Further reduced icon size
@@ -116,7 +116,7 @@ class LanguageSelectorPill extends StatelessWidget {
                   children: [
                     Text(
                       language.promptName, // Use full prompt name
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.white, // Orange text color
                         fontWeight: FontWeight.bold,
                         fontSize: 11, // Reduced text font size

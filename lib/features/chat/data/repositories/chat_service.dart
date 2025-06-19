@@ -113,7 +113,7 @@ class ChatService {
   Future<Map<String, dynamic>> getTranslation(
       String text, String targetLanguage) async {
     final response = await _supabase.functions.invoke(
-      'translate-text-message', // Updated function name
+      'translate-message', // Updated function name
       body: {
         // 'type' field no longer needed if functions are separate
         'text': text,

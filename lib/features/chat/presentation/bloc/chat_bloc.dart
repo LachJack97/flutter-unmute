@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:collection/collection.dart'; // Import for firstWhereOrNull
 import 'package:unmute/features/chat/data/repositories/chat_service.dart';
@@ -6,6 +7,9 @@ import 'package:unmute/features/chat/domain/entities/message_entity.dart';
 import 'package:unmute/features/chat/presentation/bloc/chat_event.dart';
 import 'package:unmute/features/chat/presentation/bloc/chat_state.dart';
 import 'package:unmute/features/chat/presentation/widgets/language_selector_pill.dart'; // Import Language and defaults
+import 'package:uuid/uuid.dart'; // For generating temporary unique IDs
+// Consider importing FunctionsHttpError if you want to type check specifically:
+// import 'package:functions_client/functions_client.dart'; // For FunctionsHttpError
 
 class ChatBloc extends Bloc<ChatEvent, ChatState> {
   final ChatService _chatService;
@@ -21,6 +25,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     on<LanguageChanged>(_onLanguageChanged);
     on<ChatHistoryCleared>(_onChatHistoryCleared);
     on<ImageMessageSent>(_onImageMessageSent);
+    on<ChatStreamErrorOccurred>(_onChatStreamErrorOccurred);
   }
 
   Future<void> _onSubscriptionRequested(
@@ -50,7 +55,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     _messageSubscription?.cancel();
     _messageSubscription = _chatService.getMessages().listen(
           (messages) => add(MessagesReceived(messages)),
-          onError: (e) => emit(ChatError(e.toString())),
+          onError: (e) => add(ChatStreamErrorOccurred(e.toString())),
         );
   }
 
@@ -77,7 +82,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
 
     final userId = _chatService.currentUserId;
     if (userId == null) {
-      emit(ChatError('User not authenticated. Cannot send message.'));
+      emit(const ChatError('User not authenticated. Cannot send message.'));
       // If for some reason isTyping was true, reset it.
       if (initialChatLoadedState.isTyping) {
         emit(initialChatLoadedState.copyWith(isTyping: false));
@@ -142,10 +147,38 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       // with the final message from the DB (including ID and translation).
       // That handler's ChatLoaded emission will also set isTyping to false by default.
     } catch (e) {
-      emit(ChatError('Failed to send message: ${e.toString()}'));
-      // On error, revert to the state before the optimistic update (remove tempMessage)
-      // and ensure isTyping is false.
-      emit(initialChatLoadedState.copyWith(isTyping: false));
+      print("[ChatBloc] Error in _onMessageSent: ${e.toString()}");
+      String userFriendlyMessage = 'Failed to send message.';
+
+      // Attempt to extract a more specific error message dynamically
+      dynamic errorDetails;
+      int? errorStatus;
+
+      try {
+        errorDetails = (e as dynamic).details;
+      } catch (_) { /* details not found */ }
+
+      try {
+        errorStatus = (e as dynamic).status ?? (e as dynamic).code;
+      } catch (_) { /* status/code not found */ }
+
+      if (errorDetails is Map && errorDetails.containsKey('error')) {
+        userFriendlyMessage = 'Failed to send message: ${errorDetails['error']}';
+      } else if (errorDetails is String && errorDetails.isNotEmpty) {
+        userFriendlyMessage = 'Failed to send message: $errorDetails';
+      } else if (errorStatus != null) {
+        userFriendlyMessage = 'Failed to send message. Server error (code: $errorStatus).';
+      } else if (e is Exception) {
+        final eStr = e.toString();
+        userFriendlyMessage = 'Failed to send message: ${eStr.replaceFirst("Exception: ", "")}';
+      } else {
+        userFriendlyMessage = 'Failed to send message due to an unexpected server error.';
+      }
+
+      emit(ChatError(userFriendlyMessage));
+      // The UI should hide the typing indicator upon receiving ChatError.
+      // The previous emit of initialChatLoadedState.copyWith(isTyping: false)
+      // was incorrect as it would overwrite the ChatError state.
     }
   }
 
@@ -171,11 +204,10 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     ImageMessageSent event,
     Emitter<ChatState> emit,
   ) async {
-    print(
-        "[ChatBloc] _onImageMessageSent: Received imageBytes (length: ${event.imageBytes.length}), targetLang: ${event.targetLanguageCode}");
+    print("[ChatBloc] _onImageMessageSent: Received imageFile: ${event.imageFile.path}, targetLang: ${event.targetLanguageCode}");
     final initialChatLoadedState = state;
     if (initialChatLoadedState is! ChatLoaded) {
-      emit(ChatError('Cannot process image if chat is not loaded.'));
+      emit(const ChatError('Cannot process image if chat is not loaded.'));
       return;
     }
     if (event.targetLanguageCode == null) {
@@ -185,54 +217,134 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       return;
     }
 
-    // Optionally, show a temporary message or different typing indicator for image processing
-    // For now, we'll just use the existing isTyping.
-    emit(initialChatLoadedState.copyWith(isTyping: true));
+    final userId = _chatService.currentUserId;
+    if (userId == null) {
+      emit(const ChatError('User not authenticated. Cannot send image.'));
+      return;
+    }
+
+    // Optimistic UI update with localImagePath and isUploadingImage = true
+    final String tempId = 'local_${const Uuid().v4()}';
+    final optimisticMessage = MessageEntity(
+      id: tempId,
+      content: '', // Content will be "📷 Image" after processing
+      senderId: userId,
+      createdAt: DateTime.now(),
+      localImagePath: event.imageFile.path,
+      isUploadingImage: true,
+    );
+
+    emit(initialChatLoadedState.copyWith(
+      messages: List<MessageEntity>.from(initialChatLoadedState.messages)
+        ..insert(0, optimisticMessage),
+      // isTyping: false, // Keep global isTyping as is, or manage separately.
+      // The optimisticMessage.isUploadingImage will handle its own loading state.
+    ));
 
     try {
-      print(
-          "[ChatBloc] Calling _chatService.performOcrAndTranslate..."); // Debug print
+      final Uint8List imageBytes = await event.imageFile.readAsBytes();
+      print("[ChatBloc] Calling _chatService.performOcrAndTranslate...");
       // Perform OCR and get translation data (which includes extracted text)
       final ocrTranslationData = await _chatService.performOcrAndTranslate(
-          event.imageBytes, event.targetLanguageCode!);
+          imageBytes, event.targetLanguageCode!);
 
       print("[ChatBloc] ocrTranslationData received: $ocrTranslationData");
-      // The Edge function should return 'extracted_text' and the usual translation fields
-      // for the *translated extracted text*.
-      final String? extractedText =
-          ocrTranslationData['extracted_text'] as String?;
-      print("[ChatBloc] Extracted text from OCR: $extractedText");
-      if (extractedText == null || extractedText.isEmpty) {
-        print("[ChatBloc] OCR failed: extractedText is null or empty.");
-        throw Exception(
-            'OCR failed to extract text from the image.'); // Debug print; Consider a more specific error type
+
+      String? ocrMarkdownOutput; // This will hold the text from the AI
+      Map<String, dynamic> translationDataToSave;
+
+      // Handle the new Edge Function response structure: {"markdown_output": "..."}
+      if (ocrTranslationData.containsKey('markdown_output')) {
+        ocrMarkdownOutput = ocrTranslationData['markdown_output'] as String?;
+        // Since the new format provides all content in markdown_output,
+        // other translation-specific fields are considered not applicable for separate display.
+        // The OCR markdown will go into the 'output' field of the message.
+        translationDataToSave = {
+          'utterance': ocrMarkdownOutput, // OCR text goes into 'utterance' to populate message.output
+          'romanization': null,
+          'breakdown': null,
+          'detected_language': null, // Not provided by the new Edge Function format
+        };
+        print("[ChatBloc] Parsed 'markdown_output' structure from OCR function.");
+        if (ocrMarkdownOutput == null || ocrMarkdownOutput.isEmpty) {
+          print("[ChatBloc] 'markdown_output' is null or empty.");
+          throw Exception('AI function returned empty content for the image.');
+        }
+      } else {
+        // Fallback or error for unexpected structure from the OCR function
+        print("[ChatBloc] Unexpected response structure from OCR function: $ocrTranslationData");
+        throw Exception('Unexpected response structure from AI image processing function.');
       }
 
-      // Save the message. The 'originalContent' will be the text extracted from the image.
-      // The 'translationData' will contain the translation of this extracted text.
+      // Determine content for the user's bubble (originalContent)
+      String userBubbleContent;
+
+      String? uploadedImageUrl;
+      try {
+        // Create a unique file name for the image
+        final String fileName = 'img_${DateTime.now().millisecondsSinceEpoch}.png';
+        print("[ChatBloc] Uploading image with fileName: $fileName");
+        uploadedImageUrl = await _chatService.uploadImage(
+            imageBytes: imageBytes, fileName: fileName);
+        print("[ChatBloc] Image uploaded, URL: $uploadedImageUrl");
+        userBubbleContent = "📷 Image"; // This will be message.content for the user's bubble
+      } catch (e) {
+        print("[ChatBloc] Failed to upload image: $e. Proceeding without image URL.");
+        userBubbleContent = "⚠️ Image (upload failed)"; // Placeholder for user's bubble
+        // Non-critical error for now, message will be saved without image URL.
+      }
+
       print(
-          "[ChatBloc] Calling _chatService.saveMessage with extractedText: $extractedText"); // Debug print
+          "[ChatBloc] Calling _chatService.saveMessage with userBubbleContent: $userBubbleContent, imageUrl: $uploadedImageUrl");
       await _chatService.saveMessage(
-        originalContent:
-            extractedText, // Text from OCR is the "original" for this message
-        translationData:
-            ocrTranslationData, // Contains translation of extractedText
+        originalContent: userBubbleContent, // This is for the user's bubble (message.content)
+        translationData: translationDataToSave,
         targetLanguage: event.targetLanguageCode!, // Added null assertion
+        imageUrl: uploadedImageUrl, // Pass the URL here
       );
       // The stream listener (_onMessagesReceived) will update the UI with the new message.
       // The ChatLoaded state emitted by _onMessagesReceived will set isTyping to false.
+      // The optimistic message (with 'local_' ID) will be implicitly removed when the
+      // new list of messages from the database is emitted by _onMessagesReceived.
     } catch (e) {
       print(
           "[ChatBloc] Error in _onImageMessageSent: ${e.toString()}"); // Debug print
-      emit(ChatError('Failed to process image: ${e.toString()}'));
-      // Revert isTyping state on error
-      if (state is ChatLoaded) {
-        // Check current state again
-        emit((state as ChatLoaded).copyWith(isTyping: false));
+      String userFriendlyMessage = 'Failed to process image.';
+
+      // Attempt to extract a more specific error message dynamically
+      dynamic errorDetails;
+      int? errorStatus;
+
+      try {
+        errorDetails = (e as dynamic).details;
+      } catch (_) { /* details not found */ }
+
+      try {
+        errorStatus = (e as dynamic).status ?? (e as dynamic).code;
+      } catch (_) { /* status/code not found */ }
+
+      if (errorDetails is Map && errorDetails.containsKey('error')) {
+        userFriendlyMessage = 'Failed to process image: ${errorDetails['error']}';
+      } else if (errorDetails is String && errorDetails.isNotEmpty) {
+        userFriendlyMessage = 'Failed to process image: $errorDetails';
+      } else if (errorStatus != null) {
+        userFriendlyMessage = 'Failed to process image. Server error (code: $errorStatus).';
+      } else if (e is Exception) {
+        final eStr = e.toString();
+        userFriendlyMessage = 'Failed to process image: ${eStr.replaceFirst("Exception: ", "")}';
       } else {
-        // If state changed to something else (e.g. ChatError already), emit based on initial
+        userFriendlyMessage = 'Failed to process image due to an unexpected server error.';
+      }
+      emit(ChatError(userFriendlyMessage));
+      // Remove the optimistic message on error
+      if (state is ChatLoaded) {
+        final currentMessages = (state as ChatLoaded).messages;
+        final updatedMessages = currentMessages.where((msg) => msg.id != tempId).toList();
+        emit((state as ChatLoaded).copyWith(messages: updatedMessages, isTyping: false));
+      } else {
         emit(initialChatLoadedState.copyWith(isTyping: false));
       }
+      // The UI should hide the typing indicator upon receiving ChatError.
     }
   }
 
@@ -258,6 +370,13 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       // If clearing failed, you might want to revert to the previous state
       // or fetch messages again, but for now, ChatError is emitted.
     }
+  }
+
+  void _onChatStreamErrorOccurred(
+    ChatStreamErrorOccurred event,
+    Emitter<ChatState> emit,
+  ) {
+    emit(ChatError(event.errorMessage));
   }
 
   @override

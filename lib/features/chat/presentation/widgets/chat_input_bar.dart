@@ -18,7 +18,8 @@ class ChatInputBar extends StatelessWidget {
       child: Row(
         children: [
           IconButton(
-            icon: Icon(Icons.image_outlined, color: Colors.grey[700]),
+            icon: Icon(Icons.image_outlined,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
             onPressed: onImagePick, // Call the new callback
             tooltip: 'Pick image for OCR',
           ),
@@ -27,19 +28,17 @@ class ChatInputBar extends StatelessWidget {
             child: TextFormField(
               controller: controller,
               decoration: InputDecoration(
-                hintText: 'Type your message...',
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              ),
+                  hintText: 'Type your message...',
+                  // Border and fillColor will be handled by InputDecorationTheme
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10)),
               onFieldSubmitted: (_) => onSend(),
             ),
           ),
           const SizedBox(width: 4), // Adjusted spacing
           IconButton(
-              icon: const Icon(Icons.send),
-              style: ButtonStyle(
-                  iconColor: MaterialStateProperty.all(Colors.orange[700])),
+              icon: Icon(Icons.send,
+                  color: Theme.of(context).colorScheme.primary),
               onPressed: onSend),
         ],
       ),

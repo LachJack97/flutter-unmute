@@ -11,11 +11,12 @@ class TypingIndicator extends StatelessWidget {
         margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
         decoration: BoxDecoration(
-          color: Colors.grey[200],
+          color: Theme.of(context).colorScheme.surfaceContainer,
           borderRadius: BorderRadius.circular(15),
         ),
-        child: const Text('...',
-            style: TextStyle(fontSize: 16, color: Colors.black87)),
+        child: Text('...',
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface)),
       ),
     );
   }
