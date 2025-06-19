@@ -160,7 +160,7 @@ class _ChatMessageItemState extends State<ChatMessageItem> {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.grey[200],
+          color: Theme.of(context).colorScheme.surfaceContainer,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Column(
@@ -229,7 +229,7 @@ class _ChatMessageItemState extends State<ChatMessageItem> {
                             )
                           : Text(
                               displayedText,
-                              style: const TextStyle(fontSize: 16, color: Colors.black87),
+                              style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurface),
                             ),
                     ),
                     if (!isOcrMarkdown) // Only show star for actual translations
@@ -255,7 +255,7 @@ class _ChatMessageItemState extends State<ChatMessageItem> {
                       ),
                     IconButton(
                       icon: const Icon(Icons.copy, size: 16),
-                      color: Colors.black45,
+                      color: Theme.of(context).colorScheme.onSurface,
                       padding: const EdgeInsets.only(left: 4.0),
                       constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
                       splashRadius: 18,
@@ -295,16 +295,16 @@ class _ChatMessageItemState extends State<ChatMessageItem> {
                   Expanded(
                     child: Text(
                       romanization!,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontStyle: FontStyle.italic,
-                        color: Colors.black87,
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontSize: 14,
                       ),
                     ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.copy, size: 16),
-                    color: Colors.black45,
+                    color: Theme.of(context).colorScheme.onSurface,
                     padding: const EdgeInsets.only(left: 4.0),
                     constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
                     splashRadius: 18,
@@ -419,17 +419,17 @@ class _BreakdownList extends StatelessWidget {
               children: [
                 Text(
                   '${part['part'] ?? ''}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     '— ${part['gloss'] ?? ''}',
-                    style: const TextStyle(
-                      color: Colors.black87,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 14,
                     ),
                   ),

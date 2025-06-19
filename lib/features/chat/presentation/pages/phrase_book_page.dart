@@ -4,9 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:unmute/features/chat/domain/entities/favorite_phrase_entity.dart';
 import 'package:unmute/features/chat/presentation/bloc/phrase_book_bloc.dart';
 import 'package:unmute/features/chat/presentation/bloc/phrase_book_state.dart';
-import 'package:unmute/features/chat/presentation/widgets/language_selector_pill.dart'; // For Language class
-import 'package:unmute/features/chat/presentation/widgets/phrase_card_item.dart'; // Import the PhraseCardItem
-import 'package:collection/collection.dart'; // For firstWhereOrNull
+import 'package:unmute/features/chat/presentation/widgets/language_selector_pill.dart'; 
+import 'package:unmute/features/chat/presentation/widgets/phrase_card_item.dart'; 
+import 'package:collection/collection.dart'; 
 
 class PhraseBookPage extends StatefulWidget {
   const PhraseBookPage({super.key});
@@ -22,10 +22,6 @@ class _PhraseBookPageState extends State<PhraseBookPage> {
   @override
   void initState() {
     super.initState();
-    // Ensure favorites are loaded if not already
-    // BlocProvider.of<PhraseBookBloc>(context).add(const LoadFavoritePhrases());
-    // This is already done in UnmuteApp, so it might not be strictly necessary here
-    // unless you want to ensure a refresh every time the page is visited.
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text.toLowerCase();
@@ -42,7 +38,6 @@ class _PhraseBookPageState extends State<PhraseBookPage> {
           onPressed: () => context.go('/chat'), // Navigate back to chat
         ),
         title: const Text('Phrase Book'),
-        backgroundColor: Colors.white,
         elevation: 0,
         iconTheme:
             IconThemeData(color: Theme.of(context).colorScheme.onSurface),
@@ -51,7 +46,6 @@ class _PhraseBookPageState extends State<PhraseBookPage> {
             fontSize: 20,
             fontWeight: FontWeight.w500),
       ),
-      backgroundColor: Colors.white,
       body: Column(
         children: [
           Padding(
@@ -155,9 +149,10 @@ class _PhraseBookPageState extends State<PhraseBookPage> {
                           Text(
                             '$displayLanguageName Phrases (${phrasesInGroup.length})',
                             style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.primary),
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.orange,
+                            ),
                           ),
                           const SizedBox(
                               height: 12.0), // Spacing after the title

@@ -16,17 +16,16 @@ class PhraseCardItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       // Elevation and shape will be handled by CardTheme
-      // color will also be handled by CardTheme (which we set to darkThemeBackground)
+      color: Theme.of(context).colorScheme.surfaceContainer,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              // Original content first
               'Original: ${phrase.originalContent}',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  color: Theme.of(context).colorScheme.onSurface),
             ),
             const SizedBox(height: 6),
             Text(
@@ -39,11 +38,10 @@ class PhraseCardItem extends StatelessWidget {
                 phrase.romanisation!.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(
-                // Romanisation third
                 'Romanisation: ${phrase.romanisation}',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     fontStyle: FontStyle.italic,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    color: Theme.of(context).colorScheme.onSurface),
               ),
             ],
             Align(

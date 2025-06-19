@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 const Color darkThemeBackground = Color(0xFF36393F); // Main background
 const Color darkThemeSurface = Color(0xFF2F3136); // Slightly lighter surfaces
 const Color darkThemeAlmostBlack = Color(0xFF202225); // Even darker areas
-const Color darkThemePrimary = Color(0xFF5865F2); // Primary accent color
+const Color darkThemePrimary = Colors.orange; // Primary accent color
 const Color darkThemeTextPrimary = Colors.white;
 const Color darkThemeTextSecondary = Color(0xFFB9BBBE); // Secondary text/icons
 const Color accentGreen = Color(0xFF43B581); // Accent color for positive actions/indicators
@@ -57,11 +57,11 @@ class AppTheme {
       inversePrimary: darkThemeBackground,
       primaryFixed: darkThemePrimary,
       onPrimaryFixed: darkThemeTextPrimary,
-      primaryFixedDim: Color(0xFF4A5ACC),
+      primaryFixedDim: darkThemePrimary,
       onPrimaryFixedVariant: darkThemeTextPrimary,
       secondaryFixed: darkThemePrimary,
       onSecondaryFixed: darkThemeTextPrimary,
-      secondaryFixedDim: Color(0xFF4A5ACC),
+      secondaryFixedDim:darkThemePrimary,
       onSecondaryFixedVariant: darkThemeTextPrimary,
       tertiary: accentGreen, // Example for a tertiary color
       onTertiary: darkThemeTextPrimary,
