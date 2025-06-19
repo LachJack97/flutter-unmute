@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:unmute/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:image_picker/image_picker.dart'; // Import image_picker
-import 'dart:typed_data'; // Import for Uint8List
 import 'package:go_router/go_router.dart'; // Import GoRouter for navigation
 import 'package:unmute/features/chat/presentation/bloc/chat_bloc.dart';
 import 'package:unmute/features/chat/presentation/bloc/chat_event.dart';

@@ -14,14 +14,67 @@ class AppTheme {
   // Private constructor to prevent instantiation
   AppTheme._();
 
-  static final ThemeData lightTheme = ThemeData(
-    useMaterial3: true,
+  static final lightTheme = ThemeData(
     brightness: Brightness.light,
+    primarySwatch: Colors.orange,
+    scaffoldBackgroundColor: const Color(0xFFF5F5F7),
     colorScheme: ColorScheme.fromSeed(
-      seedColor: Colors.orange, // Your existing primary color for light theme
+      seedColor: Colors.orange,
       brightness: Brightness.light,
+      background: const Color(0xFFF5F5F7), // Main background
+      primary: Colors.orange, // Main accent color
+      onPrimary: Colors.white, // Text on accent color
+      surface: Colors.white, // Card backgrounds, dialogs
+      onSurface: const Color(0xFF1C1C1E), // Main text color
+      surfaceContainer: Colors.white, // Explicitly for cards/containers
+      onSurfaceVariant:
+          const Color(0xFF3C3C43).withOpacity(0.6), // Secondary text
     ),
-    // You can further customize text themes, button themes, etc. for light theme
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Color(0xFFF5F5F7),
+      elevation: 0,
+      iconTheme: IconThemeData(color: Color(0xFF1C1C1E)),
+      titleTextStyle: TextStyle(
+        color: Color(0xFF1C1C1E),
+        fontSize: 20,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+    cardTheme: const CardThemeData(
+      color: Colors.white,
+      elevation: 1,
+      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    ),
+    textTheme: const TextTheme(
+      bodyLarge: TextStyle(color: Color(0xFF1C1C1E)),
+      bodyMedium: TextStyle(color: Color(0xFF1C1C1E)),
+      titleLarge: TextStyle(color: Color(0xFF1C1C1E), fontWeight: FontWeight.bold),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 12,
+      ),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
+      hintStyle: TextStyle(
+        color: const Color(0xFF3C3C43).withOpacity(0.6),
+      ),
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.orange,
+        foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 16),
+      ),
+    ),
   );
 
   static final ThemeData darkTheme = ThemeData(
