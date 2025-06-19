@@ -41,6 +41,10 @@ class PhraseBookBloc extends Bloc<PhraseBookEvent, PhraseBookState> {
   }
   emit(PhraseBookLoaded(groupedPhrases: grouped));
 }
+// lib/features/chat/presentation/bloc/phrase_book_bloc.dart
+
+ // lib/features/chat/presentation/bloc/phrase_book_bloc.dart
+
   Future<void> _onAddPhraseToFavorites(
     AddPhraseToFavorites event,
     Emitter<PhraseBookState> emit,
@@ -54,7 +58,13 @@ class PhraseBookBloc extends Bloc<PhraseBookEvent, PhraseBookState> {
         translatedOutput: event.message.output!,
         targetLanguageCode: event.message.targetLanguage ?? 'unknown',
         romanisation: event.message.romanisation,
+        // FIX: Pass the detected language from the message
+        language: event.message.detectedLanguageCode,
       );
+      
+      // This line is from a previous fix, it's correct to keep it.
+      add(const LoadFavoritePhrases());
+
     } catch (e) {
       emit(PhraseBookError(message: "Failed to add favorite: ${e.toString()}"));
     }

@@ -218,12 +218,15 @@ class ChatService {
 
   // --- Favorite Phrases Methods ---
 
+// lib/features/chat/data/repositories/chat_service.dart
+
   /// Adds a message to the user's favorite phrases.
   Future<void> addFavoritePhrase({
     required String originalContent,
     required String translatedOutput,
     required String targetLanguageCode,
     String? romanisation,
+    String? language, // Add this parameter
   }) async {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) {
@@ -236,6 +239,7 @@ class ChatService {
       'translated_output': translatedOutput,
       'target_language_code': targetLanguageCode,
       'romanisation': romanisation,
+      'language': language, // Add this line to save the language
     });
   }
 
@@ -253,8 +257,7 @@ class ChatService {
         .eq('user_id', userId);
   }
 
-  /// Gets a stream of the current user's favorite phrases.
-  Stream<List<FavoritePhraseEntity>> getFavoritePhrases() {
+Stream<List<FavoritePhraseEntity>> getFavoritePhrases() {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) {
       return Stream.value([]);
@@ -271,7 +274,8 @@ class ChatService {
                 try {
                   return FavoritePhraseEntity(
                     id: map['id'],
-                    language: map['language'],
+                    // FIX: Provide a default value if language is null
+                    language: map['language'] ?? '',
                     userId: map['user_id'],
                     originalContent: map['original_content'],
                     translatedOutput: map['translated_output'],
@@ -282,14 +286,11 @@ class ChatService {
                 } catch (e) {
                   print(
                       "Error parsing favorite phrase data: ${map.toString()}. Error: $e");
-                  // In case of parsing error, you might want to filter it out or return a default
-                  // For now, rethrowing or filtering might be best.
-                  // This example will filter out malformed entries.
                   return null;
                 }
               })
               .whereType<FavoritePhraseEntity>()
-              .toList(); // Filter out nulls from parsing errors
+              .toList();
         });
   }
 }
