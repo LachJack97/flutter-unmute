@@ -53,15 +53,15 @@ class PhraseBookBloc extends Bloc<PhraseBookEvent, PhraseBookState> {
       final message = event.message;
       String originalContent = message.content;
       String? translatedOutput = message.output;
-      String? targetLanguageCode = message.targetLanguage;
-      String? detectedLanguage = message.detectedLanguageCode;
+      String? targetLanguageCode = message.targetLanguage; // This is the language of the output
+      String? detectedOriginalLanguage = message.detectedLanguageCode; // This is the language of the input/original
 
       // If output is null or empty, but it's because source and target lang are the same,
       // then the 'translatedOutput' for the favorite can be the original content itself.
       if ((translatedOutput == null || translatedOutput.isEmpty) &&
-          detectedLanguage != null &&
+          detectedOriginalLanguage != null &&
           targetLanguageCode != null &&
-          detectedLanguage == targetLanguageCode) {
+          detectedOriginalLanguage == targetLanguageCode) {
         translatedOutput = originalContent; // Use original content as "translated"
       }
 
@@ -76,10 +76,10 @@ class PhraseBookBloc extends Bloc<PhraseBookEvent, PhraseBookState> {
         originalContent: originalContent,
         translatedOutput: translatedOutput,
         targetLanguageCode: targetLanguageCode ?? 'unknown',
+        originalLanguageCode: detectedOriginalLanguage ?? 'unknown', // Pass the detected original language
         romanisation: message.romanisation,
-        language: detectedLanguage, // This is the original detected language of the input
       );
-      
+
       add(const LoadFavoritePhrases());
     } catch (e) {
       emit(PhraseBookError(message: "Failed to add favorite: ${e.toString()}"));

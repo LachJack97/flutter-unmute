@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:collection/collection.dart'; // Import for firstWhereOrNull
+import 'package:flutter/foundation.dart' as foundation; // Import for debugPrint
+import 'package:collection/collection.dart' as collection; // Import with prefix to ensure extension methods are recognized
+// Import for firstWhereOrNull
 import 'package:unmute/features/chat/data/repositories/chat_service.dart';
 import 'package:unmute/features/chat/domain/entities/message_entity.dart';
 import 'package:unmute/features/chat/presentation/bloc/chat_event.dart';
@@ -38,18 +40,16 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     try {
       final String? targetLangCode = await _chatService.getTargetLanguage();
       if (targetLangCode != null) {
-        // Use firstWhereOrNull to safely handle cases where the code might not match
-        _currentTargetLanguage =
-            LanguageSelectorPill.availableLanguages.firstWhereOrNull(
-          (lang) => lang.code == targetLangCode,
+        // Explicitly cast to Iterable<Language> to help the analyzer recognize the extension method.
+        _currentTargetLanguage = (LanguageSelectorPill.availableLanguages as Iterable<Language>)
+            .firstWhereOrNull((lang) => lang.code == targetLangCode,
         );
       } else {
         _currentTargetLanguage =
             null; // Explicitly set to null if no preference found
       }
     } catch (e) {
-      // Consider using a logger here instead of print
-      _currentTargetLanguage = null; // Default to null on error
+      foundation.debugPrint('[ChatBloc] Error loading target language: $e'); // Default to null on error
     }
 
     _messageSubscription?.cancel();
@@ -148,7 +148,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       // That handler's ChatLoaded emission will also set isTyping to false by default.
     } catch (e) {
       print("[ChatBloc] Error in _onMessageSent: ${e.toString()}");
-      String userFriendlyMessage = 'Failed to send message.';
+      String userFriendlyMessage; // Changed print to debugPrint
 
       // Attempt to extract a more specific error message dynamically
       dynamic errorDetails;
@@ -167,12 +167,12 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       } else if (errorDetails is String && errorDetails.isNotEmpty) {
         userFriendlyMessage = 'Failed to send message: $errorDetails';
       } else if (errorStatus != null) {
-        userFriendlyMessage = 'Failed to send message. Server error (code: $errorStatus).';
+        userFriendlyMessage = 'Failed to send message. Server error (code: $errorStatus).'; // Changed print to debugPrint
       } else if (e is Exception) {
         final eStr = e.toString();
         userFriendlyMessage = 'Failed to send message: ${eStr.replaceFirst("Exception: ", "")}';
       } else {
-        userFriendlyMessage = 'Failed to send message due to an unexpected server error.';
+        userFriendlyMessage = 'Failed to send message due to an unexpected server error: $e'; // Include original error for debugging
       }
 
       emit(ChatError(userFriendlyMessage));
@@ -204,7 +204,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     ImageMessageSent event,
     Emitter<ChatState> emit,
   ) async {
-    print("[ChatBloc] _onImageMessageSent: Received imageFile: ${event.imageFile.path}, targetLang: ${event.targetLanguageCode}");
+    foundation.debugPrint("[ChatBloc] _onImageMessageSent: Received imageFile: ${event.imageFile.path}, targetLang: ${event.targetLanguageCode}");
     final initialChatLoadedState = state;
     if (initialChatLoadedState is! ChatLoaded) {
       emit(const ChatError('Cannot process image if chat is not loaded.'));
@@ -242,20 +242,20 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     ));
 
     try {
-      final Uint8List imageBytes = await event.imageFile.readAsBytes();
-      print("[ChatBloc] Calling _chatService.performOcrAndTranslate...");
+      final Uint8List imageBytes = await event.imageFile.readAsBytes(); // Changed print to debugPrint
+      foundation.debugPrint("[ChatBloc] Calling _chatService.performOcrAndTranslate...");
       // Perform OCR and get translation data (which includes extracted text)
       final ocrTranslationData = await _chatService.performOcrAndTranslate(
           imageBytes, event.targetLanguageCode!);
 
-      print("[ChatBloc] ocrTranslationData received: $ocrTranslationData");
+      foundation.debugPrint("[ChatBloc] ocrTranslationData received: $ocrTranslationData");
 
       String? ocrMarkdownOutput; // This will hold the text from the AI
       Map<String, dynamic> translationDataToSave;
 
       // Handle the new Edge Function response structure: {"markdown_output": "..."}
       if (ocrTranslationData.containsKey('markdown_output')) {
-        ocrMarkdownOutput = ocrTranslationData['markdown_output'] as String?;
+        ocrMarkdownOutput = ocrTranslationData['markdown_output'] as String?; // Cast to String?
         // Since the new format provides all content in markdown_output,
         // other translation-specific fields are considered not applicable for separate display.
         // The OCR markdown will go into the 'output' field of the message.
@@ -265,9 +265,9 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
           'breakdown': null,
           'detected_language': null, // Not provided by the new Edge Function format
         };
-        print("[ChatBloc] Parsed 'markdown_output' structure from OCR function.");
+        foundation.debugPrint("[ChatBloc] Parsed 'markdown_output' structure from OCR function.");
         if (ocrMarkdownOutput == null || ocrMarkdownOutput.isEmpty) {
-          print("[ChatBloc] 'markdown_output' is null or empty.");
+          foundation.debugPrint("[ChatBloc] 'markdown_output' is null or empty.");
           throw Exception('AI function returned empty content for the image.');
         }
       } else {
@@ -282,20 +282,20 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       String? uploadedImageUrl;
       try {
         // Create a unique file name for the image
-        final String fileName = 'img_${DateTime.now().millisecondsSinceEpoch}.png';
-        print("[ChatBloc] Uploading image with fileName: $fileName");
+        final String fileName = 'img_${DateTime.now().millisecondsSinceEpoch}.png'; // Changed print to debugPrint
+        foundation.debugPrint("[ChatBloc] Uploading image with fileName: $fileName");
         uploadedImageUrl = await _chatService.uploadImage(
             imageBytes: imageBytes, fileName: fileName);
-        print("[ChatBloc] Image uploaded, URL: $uploadedImageUrl");
-        userBubbleContent = "📷 Image"; // This will be message.content for the user's bubble
+        foundation.debugPrint("[ChatBloc] Image uploaded, URL: $uploadedImageUrl");
+        userBubbleContent = "📷 Image";
       } catch (e) {
         print("[ChatBloc] Failed to upload image: $e. Proceeding without image URL.");
         userBubbleContent = "⚠️ Image (upload failed)"; // Placeholder for user's bubble
-        // Non-critical error for now, message will be saved without image URL.
+        // Non-critical error for now, message will be saved without image URL. // Changed print to debugPrint
       }
 
       print(
-          "[ChatBloc] Calling _chatService.saveMessage with userBubbleContent: $userBubbleContent, imageUrl: $uploadedImageUrl");
+          "[ChatBloc] Calling _chatService.saveMessage with userBubbleContent: $userBubbleContent, imageUrl: $uploadedImageUrl"); // Debug print
       await _chatService.saveMessage(
         originalContent: userBubbleContent, // This is for the user's bubble (message.content)
         translationData: translationDataToSave,
@@ -307,7 +307,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       // The optimistic message (with 'local_' ID) will be implicitly removed when the
       // new list of messages from the database is emitted by _onMessagesReceived.
     } catch (e) {
-      print(
+      foundation.debugPrint(
           "[ChatBloc] Error in _onImageMessageSent: ${e.toString()}"); // Debug print
       String userFriendlyMessage = 'Failed to process image.';
 
@@ -328,12 +328,12 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       } else if (errorDetails is String && errorDetails.isNotEmpty) {
         userFriendlyMessage = 'Failed to process image: $errorDetails';
       } else if (errorStatus != null) {
-        userFriendlyMessage = 'Failed to process image. Server error (code: $errorStatus).';
+        userFriendlyMessage = 'Failed to process image. Server error (code: $errorStatus).'; // Changed print to debugPrint
       } else if (e is Exception) {
         final eStr = e.toString();
         userFriendlyMessage = 'Failed to process image: ${eStr.replaceFirst("Exception: ", "")}';
       } else {
-        userFriendlyMessage = 'Failed to process image due to an unexpected server error.';
+        userFriendlyMessage = 'Failed to process image due to an unexpected server error: $e'; // Include original error for debugging
       }
       emit(ChatError(userFriendlyMessage));
       // Remove the optimistic message on error

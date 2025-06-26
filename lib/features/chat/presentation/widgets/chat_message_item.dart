@@ -131,8 +131,8 @@ class _ChatMessageItemState extends State<ChatMessageItem> {
         canExpandOcr = true;
         if (!_isOcrContentExpanded) {
           displayedText = (lines.length > maxLinesShort)
-              ? lines.take(maxLinesShort).join('\n') + "\n..."
-              : mainText.substring(0, maxLengthShort) + "...";
+              ? "${lines.take(maxLinesShort).join('\n')}\n..."
+              : "${mainText.substring(0, maxLengthShort)}...";
         }
       }
     }
@@ -254,7 +254,7 @@ class _ChatMessageItemState extends State<ChatMessageItem> {
                 children: [
                   Expanded(
                     child: Text(
-                      romanization!,
+                      romanization,
                       style: TextStyle(
                           fontStyle: FontStyle.italic,
                           color: theme.colorScheme.onSurface,
@@ -283,7 +283,7 @@ class _ChatMessageItemState extends State<ChatMessageItem> {
                       fontWeight: FontWeight.w500, color: theme.colorScheme.primary),
                 ),
               ),
-              if (_isTranslationExpanded) _BreakdownList(breakdown: breakdown!)
+              if (_isTranslationExpanded) _BreakdownList(breakdown: breakdown)
             ],
           ],
         ),

@@ -27,11 +27,11 @@ class ChatInputBar extends StatelessWidget {
           Expanded(
             child: TextFormField(
               controller: controller,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                   hintText: 'Type your message...',
                   // Border and fillColor will be handled by InputDecorationTheme
                   contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10)),
+                      EdgeInsets.symmetric(horizontal: 16, vertical: 10)),
               onFieldSubmitted: (_) => onSend(),
             ),
           ),

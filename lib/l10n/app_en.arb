@@ -1,0 +1,12 @@
+{
+  "@@locale": "en",
+  "appName": "Unmute",
+  "welcomeMessage": "Welcome to Unmute!",
+  "selectLanguage": "Select Language",
+  "save": "Save",
+  "english": "English",
+  "spanish": "Spanish",
+  "french": "French",
+  "firstTimeSetup": "First Time Setup",
+  "getStarted": "Get Started"
+}

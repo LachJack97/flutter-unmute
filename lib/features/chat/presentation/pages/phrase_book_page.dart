@@ -86,7 +86,7 @@ class _PhraseBookPageState extends State<PhraseBookPage> {
                           filteredGroupedPhrases[languageCode]!;
 
                       // FIX: Use the new Language class structure to find the language details
-                      final language = LanguageSelectorPill.availableLanguages
+                      final language = (LanguageSelectorPill.availableLanguages as Iterable<Language>)
                           .firstWhere(
                         (lang) => lang.code == languageCode,
                         // Update the fallback to match the new constructor

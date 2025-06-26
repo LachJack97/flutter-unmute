@@ -15,6 +15,7 @@ import 'package:unmute/features/auth/presentation/pages/login_page.dart';
 import 'package:unmute/features/auth/presentation/pages/register_page.dart';
 import 'package:unmute/features/auth/presentation/pages/check_email_page.dart';
 import 'package:unmute/features/chat/presentation/pages/chat_page.dart';
+import 'package:unmute/l10n/app_localizations.dart';
 import 'package:unmute/features/chat/presentation/bloc/chat_bloc.dart';
 import 'package:unmute/features/chat/presentation/bloc/chat_event.dart';
 import 'package:unmute/features/chat/presentation/bloc/phrase_book_bloc.dart'; // Import PhraseBookBloc
@@ -143,6 +144,10 @@ class _UnmuteAppState extends State<UnmuteApp> {
         darkTheme: AppTheme.darkTheme,
         themeMode: ThemeMode.system,
         routerConfig: _router,
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        locale: const Locale(
+            'en'), // Set the initial locale, it will be overridden if a preferred locale is set
       ),
     );
   }

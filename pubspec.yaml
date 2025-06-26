@@ -9,6 +9,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.20.2 # Add this line
+  shared_preferences: ^2.2.3 
 
   # Core App Dependencies
   supabase_flutter: ^2.5.8 # Using latest stable version
@@ -25,9 +29,12 @@ dependencies:
 
 
 
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  intl_translation: ^0.20.1 # For generating Dart code from ARB files
+
 
   # Linter
   flutter_lints: ^4.0.0 # Using latest stable version
@@ -38,3 +45,4 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  generate: true # Add this line
