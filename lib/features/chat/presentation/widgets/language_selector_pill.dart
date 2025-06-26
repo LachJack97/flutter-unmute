@@ -31,16 +31,12 @@ class Language {
   int get hashCode => code.hashCode;
 }
 
-// Make sure the Language class from above is in the same file or imported.
-
 // --- The Main Language Selector Widget ---
-// A stateless, reusable pill-shaped dropdown for selecting a language.
 class LanguageSelectorPill extends StatelessWidget {
-  // Default language for the application.
   static const Language defaultLanguage = Language(
       code: 'en', displayName: 'EN', promptName: 'English', flag: '🇺🇸');
 
-  // A complete list of ALL languages the app knows. Filtering happens before passing to this widget.
+  // FIX: Added more languages to the list
   static const List<Language> availableLanguages = [
     Language(
         code: 'en', displayName: 'EN', promptName: 'English', flag: '🇺🇸'),
@@ -51,13 +47,20 @@ class LanguageSelectorPill extends StatelessWidget {
     Language(
         code: 'ja', displayName: 'JP', promptName: 'Japanese', flag: '🇯🇵'),
     Language(code: 'ko', displayName: 'KR', promptName: 'Korean', flag: '🇰🇷'),
+    Language(
+        code: 'it', displayName: 'IT', promptName: 'Italian', flag: '🇮🇹'),
+    Language(
+        code: 'pt', displayName: 'PT', promptName: 'Portuguese', flag: '🇵🇹'),
+    Language(
+        code: 'ru', displayName: 'RU', promptName: 'Russian', flag: '🇷🇺'),
+    Language(
+        code: 'zh', displayName: 'CN', promptName: 'Chinese', flag: '🇨🇳'),
+    Language(
+        code: 'ar', displayName: 'SA', promptName: 'Arabic', flag: '🇸🇦'),
+    Language(code: 'hi', displayName: 'IN', promptName: 'Hindi', flag: '🇮🇳'),
   ];
 
-  // The currently selected language, provided by the parent widget.
-  final Language? selectedLanguage; // Now nullable
-
-  // Callback to notify the parent when a new language is chosen.
-  // It passes the entire Language object for maximum flexibility.
+  final Language? selectedLanguage;
   final ValueChanged<Language> onLanguageSelected;
 
   const LanguageSelectorPill({
@@ -71,22 +74,20 @@ class LanguageSelectorPill extends StatelessWidget {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.symmetric(
-          horizontal: 6.0, vertical: 1.0), // Further reduced padding
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 1.0),
       decoration: BoxDecoration(
-        color: Colors.orange[500], // Orange background
-        borderRadius: BorderRadius.circular(30.0), // Pill shape
+        color: Colors.orange[500],
+        borderRadius: BorderRadius.circular(30.0),
         border: Border.all(
-          color: Colors.orange[500]!, // Thinner orange border
-          width: 2.0, // Thinner border
+          color: Colors.orange[500]!,
+          width: 2.0,
         ),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<Language>(
           value: selectedLanguage,
-          isDense: true, // Reduces the button's height.
+          isDense: true,
           hint: const Text(
-            // Hint for when no language is selected
             "Select Language",
             style: TextStyle(
                 color: Colors.white70,
@@ -95,11 +96,10 @@ class LanguageSelectorPill extends StatelessWidget {
           ),
           icon: const Icon(
             Icons.keyboard_arrow_down_rounded,
-            color: Colors.white, // White icon for better contrast
-            size: 16, // Further reduced icon size
+            color: Colors.white,
+            size: 16,
           ),
           dropdownColor: colorScheme.surface,
-          // When a new language is selected from the list.
           onChanged: (Language? newLanguage) {
             if (newLanguage != null) {
               onLanguageSelected(newLanguage);
@@ -109,17 +109,19 @@ class LanguageSelectorPill extends StatelessWidget {
           selectedItemBuilder: (context) {
             return LanguageSelectorPill.availableLanguages
                 .map<Widget>((language) {
-              // Use the passed list
               return Center(
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // FIX: Display the flag emoji
+                    Text(language.flag, style: const TextStyle(fontSize: 12)),
+                    const SizedBox(width: 6),
                     Text(
-                      language.promptName, // Use full prompt name
+                      language.promptName,
                       style: const TextStyle(
-                        color: Colors.white, // Orange text color
+                        color: Colors.white,
                         fontWeight: FontWeight.bold,
-                        fontSize: 11, // Reduced text font size
+                        fontSize: 11,
                       ),
                     ),
                   ],
@@ -130,21 +132,21 @@ class LanguageSelectorPill extends StatelessWidget {
           // How the items in the dropdown menu are displayed.
           items: LanguageSelectorPill.availableLanguages
               .map<DropdownMenuItem<Language>>((language) {
-            // Use the passed list
             return DropdownMenuItem<Language>(
               value: language,
               child: Center(
-                // Wrap the content in a Center widget
                 child: Row(
-                  mainAxisAlignment:
-                      MainAxisAlignment.center, // Center the row content
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    // FIX: Display the flag emoji in the dropdown list
+                    Text(language.flag, style: const TextStyle(fontSize: 14)),
+                    const SizedBox(width: 8),
                     Text(
-                      language.promptName, // Use full prompt name
+                      language.promptName,
                       style: TextStyle(
                         color: colorScheme.onSurface,
                         fontWeight: FontWeight.w500,
-                        fontSize: 13, // Adjusted font size in dropdown
+                        fontSize: 13,
                       ),
                     ),
                   ],

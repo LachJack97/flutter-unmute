@@ -50,21 +50,37 @@ class PhraseBookBloc extends Bloc<PhraseBookEvent, PhraseBookState> {
     Emitter<PhraseBookState> emit,
   ) async {
     try {
-      if (event.message.output == null || event.message.output!.isEmpty) {
+      final message = event.message;
+      String originalContent = message.content;
+      String? translatedOutput = message.output;
+      String? targetLanguageCode = message.targetLanguage;
+      String? detectedLanguage = message.detectedLanguageCode;
+
+      // If output is null or empty, but it's because source and target lang are the same,
+      // then the 'translatedOutput' for the favorite can be the original content itself.
+      if ((translatedOutput == null || translatedOutput.isEmpty) &&
+          detectedLanguage != null &&
+          targetLanguageCode != null &&
+          detectedLanguage == targetLanguageCode) {
+        translatedOutput = originalContent; // Use original content as "translated"
+      }
+
+      // If after the above logic, translatedOutput is still null or empty, then don't add.
+      if (translatedOutput == null || translatedOutput.isEmpty) {
+        // Optionally, emit an informational state or log this
+        print("PhraseBookBloc: Cannot add favorite, translated output is effectively empty for message ID: ${message.id}");
         return;
       }
+
       await _chatService.addFavoritePhrase(
-        originalContent: event.message.content,
-        translatedOutput: event.message.output!,
-        targetLanguageCode: event.message.targetLanguage ?? 'unknown',
-        romanisation: event.message.romanisation,
-        // FIX: Pass the detected language from the message
-        language: event.message.detectedLanguageCode,
+        originalContent: originalContent,
+        translatedOutput: translatedOutput,
+        targetLanguageCode: targetLanguageCode ?? 'unknown',
+        romanisation: message.romanisation,
+        language: detectedLanguage, // This is the original detected language of the input
       );
       
-      // This line is from a previous fix, it's correct to keep it.
       add(const LoadFavoritePhrases());
-
     } catch (e) {
       emit(PhraseBookError(message: "Failed to add favorite: ${e.toString()}"));
     }
